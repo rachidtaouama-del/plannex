@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://plannex.ai/sitemap.xml
+
+# Block build artifacts
+Disallow: /dist/
+Disallow: /.env
+Disallow: /.env.local

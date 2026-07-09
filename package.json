@@ -1,0 +1,48 @@
+{
+  "name": "plannex",
+  "productName": "Plannex",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Plannex — Professional Shutdown Planning Software by Rachid Taouama",
+  "author": {
+    "name": "Rachid Taouama"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "vite build && electron-builder --win",
+    "electron:publish": "vite build && electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "@google/genai": "^1.28.0",
+    "electron-log": "^5.2.0",
+    "electron-updater": "^6.3.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^1.6.0",
+    "pptxgenjs": "^4.0.1",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.7.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.0.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.3",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "wait-on": "^8.0.0"
+  }
+}

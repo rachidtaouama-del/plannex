@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .github/workflows/build.yml
+# Plannex Desktop — Auto Build & Release Pipeline
+#
+# HOW IT WORKS:
+# 1. Developer finishes code changes and pushes to GitHub
+# 2. Developer creates a version tag:
+#       git tag v1.1.0
+#       git push origin v1.1.0
+# 3. This workflow triggers automatically on GitHub
+# 4. GitHub's server builds the Windows .exe (~5-10 minutes)
+# 5. The .exe is published to GitHub Releases
+# 6. All installed Plannex apps detect the new version on next launch
+#    and silently download + prompt user to restart
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Build and Release Plannex
+
+on:
+  push:
+    tags:
+      - 'v*'   # Triggers on tags like v1.0.0, v1.1.0, v2.0.0
+
+# Cancel any in-progress build when a new one starts
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      # ── Step 1: Get the source code ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up Node.js ───────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── Step 3: Install all dependencies ────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Step 4: Build the React frontend (Vite) ──────────────────────────────
+      - name: Build renderer (Vite)
+        run: npm run build
+        env:
+          # Make API keys available to Vite at build time
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_COHERE_API_KEY: ${{ secrets.VITE_COHERE_API_KEY }}
+          VITE_HF_API_KEY: ${{ secrets.VITE_HF_API_KEY }}
+          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
+
+      # ── Step 5: Build & publish the Electron .exe to GitHub Releases ─────────
+      - name: Build and publish Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx electron-builder --win --publish always
+
+      # ── Step 6: Upload artifacts for manual download if needed ───────────────
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plannex-windows-installer
+          path: release/*.exe
+          retention-days: 30

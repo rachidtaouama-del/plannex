@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# electron-builder.yml
+# Plannex Desktop — Windows Installer Configuration
+# Author: Rachid Taouama
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Application identity
+appId: com.rachidtaouama.plannex
+productName: Plannex
+copyright: "Copyright © 2025 Rachid Taouama. All rights reserved."
+
+# Directories
+directories:
+  output: release
+  buildResources: assets
+
+# Files to include in the app bundle
+files:
+  - dist/renderer/**/*
+  - electron/**/*
+  - assets/**/*
+  - node_modules/**/*
+  - package.json
+
+# ─── Windows Configuration ────────────────────────────────────────────────────
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: assets/icon.ico
+  signtoolOptions:
+    publisherName: "Rachid Taouama"
+  # No code signing — users click "More info → Run anyway" on SmartScreen
+  # signingHashAlgorithms: null
+
+# ─── NSIS Installer (Setup Wizard) ───────────────────────────────────────────
+nsis:
+  oneClick: false                          # Show install wizard (not silent)
+  perMachine: false                        # Install per-user (no admin rights needed)
+  allowElevation: true
+  allowToChangeInstallationDirectory: true # Let user choose install folder
+  createDesktopShortcut: true              # Add shortcut to Desktop
+  createStartMenuShortcut: true            # Add to Start Menu
+  shortcutName: Plannex
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  deleteAppDataOnUninstall: false          # Keep user data when uninstalling
+
+# ─── Auto-Update Distribution (GitHub Releases) ──────────────────────────────
+publish:
+  provider: github
+  owner: rachid-taouama          # ⚠️  Change to your actual GitHub username
+  repo: plannex
+  private: true
+  releaseType: release
