@@ -246,19 +246,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
 
 // ── Create License Modal ──────────────────────────────────────────────────────
 const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCreated: () => void }> = ({ adminKey, onClose, onCreated }) => {
-  const [form, setForm] = useState({ username: '', password: '', companyName: '', duration: '365', notes: '' });
+  const [form, setForm] = useState({ username: '', password: '', companyName: '', notes: '' });
+  const [durationType, setDurationType] = useState<'custom' | 'forever'>('custom');
+  const [customDays, setCustomDays] = useState('365');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.username || !form.password || !form.companyName) { setError('All fields required.'); return; }
+    if (durationType === 'custom') {
+      const days = parseInt(customDays);
+      if (!days || days < 1) { setError('Enter a valid number of days (minimum 1).'); return; }
+    }
     setLoading(true);
     try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + parseInt(form.duration));
+      const expiresAt = durationType === 'forever'
+        ? new Date('2099-12-31T23:59:59Z')
+        : (() => { const d = new Date(); d.setDate(d.getDate() + parseInt(customDays)); return d; })();
       await createLicense(adminKey, { username: form.username, password: form.password, companyName: form.companyName, expiresAt, notes: form.notes });
       onCreated();
     } catch (e: any) { setError(e.message); setLoading(false); }
@@ -269,7 +276,7 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
       <div style={{ ...styles.modal, width: 480 }}>
         <h3 style={styles.modalTitle}>Create New License</h3>
         {error && <div style={styles.modalError}>{error}</div>}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
             { label: 'Username', key: 'username', placeholder: 'e.g. john.smith' },
             { label: 'Password', key: 'password', placeholder: 'Set initial password' },
@@ -280,21 +287,61 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
               <input style={styles.modalInput} placeholder={f.placeholder} value={(form as any)[f.key]} onChange={set(f.key)} />
             </div>
           ))}
+
+          {/* Duration picker */}
           <div>
             <label style={styles.modalLabel}>License Duration</label>
-            <select style={styles.modalInput} value={form.duration} onChange={set('duration')}>
-              <option value="30">30 days (1 month)</option>
-              <option value="90">90 days (3 months)</option>
-              <option value="180">180 days (6 months)</option>
-              <option value="365">365 days (1 year)</option>
-              <option value="730">730 days (2 years)</option>
-            </select>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              {(['custom', 'forever'] as const).map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setDurationType(opt)}
+                  style={{
+                    flex: 1, padding: '9px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    background: durationType === opt ? (opt === 'forever' ? 'rgba(139,92,246,0.2)' : 'rgba(0,200,150,0.15)') : 'rgba(255,255,255,0.04)',
+                    border: durationType === opt ? (opt === 'forever' ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(0,200,150,0.4)') : '1px solid rgba(255,255,255,0.08)',
+                    color: durationType === opt ? (opt === 'forever' ? '#a78bfa' : '#00c896') : '#64748b',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {opt === 'forever' ? '♾️ Forever' : '📅 Custom Days'}
+                </button>
+              ))}
+            </div>
+
+            {durationType === 'custom' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  style={{ ...styles.modalInput, flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#00c896' }}
+                  type="number"
+                  min="1"
+                  max="3650"
+                  placeholder="365"
+                  value={customDays}
+                  onChange={e => setCustomDays(e.target.value)}
+                />
+                <span style={{ color: '#64748b', fontSize: 14, whiteSpace: 'nowrap' }}>days</span>
+                <span style={{ color: '#475569', fontSize: 12, whiteSpace: 'nowrap' }}>
+                  {customDays && !isNaN(parseInt(customDays))
+                    ? `≈ ${(parseInt(customDays) / 30).toFixed(1)} months`
+                    : ''}
+                </span>
+              </div>
+            )}
+
+            {durationType === 'forever' && (
+              <div style={{ padding: '12px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, color: '#a78bfa', fontSize: 13, textAlign: 'center' }}>
+                ♾️ This license will never expire
+              </div>
+            )}
           </div>
+
           <div>
             <label style={styles.modalLabel}>Notes (optional)</label>
             <textarea style={{ ...styles.modalInput, height: 60, resize: 'none' }} placeholder="Internal notes..." value={form.notes} onChange={set('notes')} />
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="button" style={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
             <button type="submit" style={{ ...styles.modalConfirmBtn, opacity: loading ? 0.6 : 1 }} disabled={loading}>
               {loading ? 'Creating...' : 'Create License'}

@@ -51,5 +51,5 @@ publish:
   provider: github
   owner: rachidtaouama-del
   repo: plannex
-  private: true
+  private: false
   releaseType: release
