@@ -9,6 +9,12 @@ import { LoginPage } from './components/auth/LoginPage';
 import { WelcomeBanner } from './components/auth/WelcomeBanner';
 import { retrieveUser, logoutUser, storeUser, loginUser, rehydrateUserFromSession } from './services/authService';
 import { saveSessionToDB, loadSessionFromDB } from './services/projectService';
+// ─── License System ───────────────────────────────────────────────────────────
+import LicenseLoginScreen from './components/auth/LicenseLoginScreen';
+import NotificationModal from './components/NotificationModal';
+import LicenseStatusBanner from './components/LicenseStatusBanner';
+import LicenseExpiredScreen from './components/LicenseExpiredScreen';
+import { LicenseSession, fetchNotifications, logLogin, getLicenseStatus } from './services/licenseService';
 import { parseSchedulingFile, calculateSchedule } from './services/schedulingService';
 import { markProjectHasData } from './components/ProjectHub';
 
@@ -156,6 +162,7 @@ const LiveNavigationPage = lazy(() => import('./components/LiveNavigationPage').
 const AdminDashboard = lazy(() => import('./components/auth/AdminDashboard'));
 const UserManagementPage = lazy(() => import('./components/auth/UserManagementPage'));
 const ProjectHub = lazy(() => import('./components/ProjectHub'));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
 
 // Minimal dark spinner shown while lazy chunks load
 const PageLoader = () => (
@@ -440,7 +447,7 @@ const PlannerSessionLoader: React.FC<{ onTimeout: () => void }> = ({ onTimeout }
   );
 };
 
-const App: React.FC = () => {
+const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) => {
   const [activePage, setActivePage] = useState<Page>('landing');
   const [plannerSubPage, setPlannerSubPage] = useState<'dashboard' | 'team' | 'evaluation' | 'report'>('dashboard');
 
@@ -1448,6 +1455,13 @@ const App: React.FC = () => {
             }}
           />
         );
+      case 'admin_license_panel':
+        if (!licenseSession?.isAdmin) return <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return (
+          <Suspense fallback={<PageLoader />}>
+            <AdminPanel />
+          </Suspense>
+        );
       case 'landing':
       default:
         return <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
@@ -1465,6 +1479,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         setIsVideoModalOpen={setIsVideoModalOpen}
         onBack={activePage === 'planner' ? handleBackToScheduling : undefined}
+        licenseSession={licenseSession}
       >
         <Suspense fallback={<PageLoader />}>
           {renderPage()}
@@ -1476,4 +1491,50 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+// ─── AppRoot — License gate wrapper (proper hooks separation) ───────────────────
+// This is the REAL default export. It handles the login screen, expired screen,
+// notifications, and then renders the main App with the validated license session.
+const AppRoot: React.FC = () => {
+  const [licenseSession, setLicenseSession] = useState<LicenseSession | null>(null);
+  const [pendingNotifications, setPendingNotifications] = useState<{id:string;message:string;created_at:string}[]>([]);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+
+  const handleLicenseLogin = async (session: LicenseSession) => {
+    setLicenseSession(session);
+    logLogin(session.username, session.activationKey).catch(() => {});
+    const notifs = await fetchNotifications(session.username, session.activationKey);
+    if (notifs.length > 0) {
+      setPendingNotifications(notifs);
+      setShowNotifModal(true);
+    }
+  };
+
+  // 1. Not yet logged in
+  if (!licenseSession) {
+    return <LicenseLoginScreen onSuccess={handleLicenseLogin} />;
+  }
+
+  // 2. License hard-locked (expired + past grace period)
+  const licenseStatus = getLicenseStatus(licenseSession);
+  if (licenseStatus.isHardLocked && !licenseSession.isAdmin) {
+    return <LicenseExpiredScreen username={licenseSession.username} companyName={licenseSession.companyName} />;
+  }
+
+  // 3. Authenticated — render full app
+  return (
+    <>
+      <LicenseStatusBanner session={licenseSession} />
+      <App licenseSession={licenseSession} />
+      {showNotifModal && pendingNotifications.length > 0 && (
+        <NotificationModal
+          notifications={pendingNotifications}
+          username={licenseSession.username}
+          activationKey={licenseSession.activationKey}
+          onClose={() => { setShowNotifModal(false); setPendingNotifications([]); }}
+        />
+      )}
+    </>
+  );
+};
+
+export default AppRoot;

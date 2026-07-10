@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import type { Page, UserAccount } from '../types';
+import type { LicenseSession } from '../services/licenseService';
 import { getMockUserById, markNotificationsAsRead } from '../services/mockUserService';
 
 interface LayoutProps {
@@ -13,6 +14,7 @@ interface LayoutProps {
     onLogout: () => void;
     setIsVideoModalOpen: (isOpen: boolean) => void;
     onBack?: () => void;
+    licenseSession?: LicenseSession;
 }
 
 // Custom smooth scroll function for "impressive" slow animation
@@ -114,7 +116,8 @@ const Header: React.FC<{
     onEnterApp: () => void;
     setIsVideoModalOpen: (isOpen: boolean) => void;
     onBack?: () => void;
-}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack }) => {
+    licenseSession?: LicenseSession;
+}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack, licenseSession }) => {
 
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
@@ -230,6 +233,21 @@ const Header: React.FC<{
                                 Base de Données
                             </button>
                         </nav>
+                    )}
+                    {/* Admin License Panel button — only visible to admin */}
+                    {licenseSession?.isAdmin && (
+                        <button
+                            onClick={() => setPage('admin_license_panel')}
+                            style={{
+                                padding: '6px 14px', marginLeft: 8,
+                                background: currentPage === 'admin_license_panel' ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.1)',
+                                border: '1px solid rgba(139,92,246,0.3)',
+                                borderRadius: 8, color: '#a78bfa',
+                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            ⚙️ Admin Panel
+                        </button>
                     )}
                     {isAuthenticated ? (
                         <>
@@ -427,12 +445,12 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
 };
 
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack, licenseSession }) => {
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
     return (
         <div className="flex flex-col min-h-screen bg-black text-slate-200">
-            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} />
+            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} licenseSession={licenseSession} />
             <main className={`flex-grow flex flex-col ${isInfoPage && currentPage !== 'landing' ? 'pt-24' : ''}`}>
                 {children}
             </main>

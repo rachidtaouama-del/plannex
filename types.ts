@@ -1,7 +1,7 @@
 // FIX: Define and export all shared types to be used across the application.
 // This file should only contain type definitions, not business logic.
 
-export type Page = 'landing' | 'planner' | 'what-is' | 'about' | 'contact' | 'privacy' | 'disclaimer' | 'gdpr' | 'copyright' | 'pricing' | 'scheduling' | 'project_selection' | 'hot_execution_review' | 'admin_dashboard' | 'user_management' | 'voir-la-demo' | 'ebook' | 'data_management' | 'what_if_scenario' | 'ai_copilot' | 'live_navigation' | 'project_hub';
+export type Page = 'landing' | 'planner' | 'what-is' | 'about' | 'contact' | 'privacy' | 'disclaimer' | 'gdpr' | 'copyright' | 'pricing' | 'scheduling' | 'project_selection' | 'hot_execution_review' | 'admin_dashboard' | 'user_management' | 'voir-la-demo' | 'ebook' | 'data_management' | 'what_if_scenario' | 'ai_copilot' | 'live_navigation' | 'project_hub' | 'admin_license_panel';
 
 export interface PDRItem {
   id: string; // Internal id for managing edits
