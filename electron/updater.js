@@ -16,69 +16,70 @@ autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 
 // ─── Update settings ──────────────────────────────────────────────────────────
-autoUpdater.autoDownload = true;         // Download in background automatically
-autoUpdater.autoInstallOnAppQuit = true; // Install when user quits normally
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // ─── Setup function called from main.js ──────────────────────────────────────
 function setupUpdater(mainWindow) {
-  // Check for updates 3 seconds after launch (give UI time to load first)
+  const send = (payload) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-status', payload);
+    }
+  };
+
+  // Check for updates 3 seconds after launch
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch(err => {
       log.warn('Update check failed:', err?.message);
     });
   }, 3000);
 
-  // ── Event Handlers ──────────────────────────────────────────────────────────
   autoUpdater.on('checking-for-update', () => {
     log.info('Plannex: Checking for updates...');
+    send({ type: 'checking' });
   });
 
   autoUpdater.on('update-available', (info) => {
     log.info(`Plannex: Update available — v${info.version}`);
-    // No popup here — downloading silently in background
+    send({ type: 'available', version: info.version });
   });
 
   autoUpdater.on('update-not-available', () => {
     log.info('Plannex: App is up to date.');
+    send({ type: 'not-available' });
   });
 
   autoUpdater.on('download-progress', (progress) => {
-    const msg = `Downloading update: ${Math.round(progress.percent)}%`;
-    log.info(msg);
-    // Optionally update the window title to show progress
-    if (mainWindow) {
-      mainWindow.setTitle(`Plannex — ${msg}`);
-    }
+    const percent = Math.round(progress.percent);
+    log.info(`Downloading update: ${percent}%`);
+    if (mainWindow) mainWindow.setTitle(`Plannex — Downloading update ${percent}%`);
+    send({ type: 'downloading', percent });
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    // Reset window title
-    if (mainWindow) {
-      mainWindow.setTitle('Plannex');
-    }
+    if (mainWindow) mainWindow.setTitle('Plannex');
+    log.info(`Plannex: Update v${info.version} downloaded.`);
+    send({ type: 'downloaded', version: info.version });
 
-    log.info(`Plannex: Update v${info.version} downloaded. Prompting user...`);
-
-    // Show restart dialog
     dialog.showMessageBox(mainWindow, {
       type: 'info',
       title: 'Plannex Update Ready',
       message: `Version ${info.version} is ready to install.`,
-      detail: 'The update has been downloaded. Restart Plannex to apply the latest features and improvements.',
+      detail: 'The update has been downloaded. Restart Plannex to apply the latest improvements.',
       buttons: ['Restart Now', 'Later'],
       defaultId: 0,
       cancelId: 1,
-      icon: null,
     }).then(({ response }) => {
-      if (response === 0) {
-        autoUpdater.quitAndInstall(false, true);
-      }
+      if (response === 0) autoUpdater.quitAndInstall(false, true);
     });
   });
 
   autoUpdater.on('error', (err) => {
     log.error('Auto-updater error:', err?.message);
+    send({ type: 'error', message: err?.message || 'Update failed' });
+    if (mainWindow) mainWindow.setTitle('Plannex');
   });
 }
 
 module.exports = { setupUpdater };
+

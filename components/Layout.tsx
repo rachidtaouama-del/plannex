@@ -107,6 +107,84 @@ const TerminalLink: React.FC<{
     );
 };
 
+// ── Update Button ─────────────────────────────────────────────────────────────
+type UpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'up-to-date' | 'error';
+
+const UpdateButton: React.FC = () => {
+    const [state, setState] = React.useState<UpdateState>('idle');
+    const [percent, setPercent] = React.useState(0);
+    const [version, setVersion] = React.useState('');
+    const isElectron = !!(window as any).electronAPI?.checkForUpdate;
+
+    React.useEffect(() => {
+        if (!isElectron) return;
+        const cleanup = (window as any).electronAPI.onUpdateStatus((status: any) => {
+            if (status.type === 'checking') setState('checking');
+            else if (status.type === 'available') { setState('available'); setVersion(status.version || ''); }
+            else if (status.type === 'downloading') { setState('downloading'); setPercent(status.percent || 0); }
+            else if (status.type === 'downloaded') { setState('downloaded'); setVersion(status.version || ''); }
+            else if (status.type === 'not-available') { setState('up-to-date'); setTimeout(() => setState('idle'), 4000); }
+            else if (status.type === 'error') { setState('error'); setTimeout(() => setState('idle'), 5000); }
+        });
+        return cleanup;
+    }, [isElectron]);
+
+    if (!isElectron) return null;
+
+    const handleClick = () => {
+        if (state === 'checking' || state === 'downloading') return;
+        (window as any).electronAPI.checkForUpdate();
+        setState('checking');
+    };
+
+    const label: Record<UpdateState, string> = {
+        idle: '↑ Update',
+        checking: '⟳ Checking...',
+        available: `↓ v${version} Available`,
+        downloading: `↓ ${percent}%`,
+        downloaded: `✓ Ready v${version}`,
+        'up-to-date': '✓ Up to Date',
+        error: '✕ Failed',
+    };
+
+    const color: Record<UpdateState, string> = {
+        idle: '#64748b',
+        checking: '#94a3b8',
+        available: '#00c896',
+        downloading: '#0077ff',
+        downloaded: '#00c896',
+        'up-to-date': '#22c55e',
+        error: '#ef4444',
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            disabled={state === 'checking' || state === 'downloading'}
+            title="Check for app updates"
+            style={{
+                padding: '6px 12px', marginLeft: 6,
+                background: `${color[state]}15`,
+                border: `1px solid ${color[state]}40`,
+                borderRadius: 8, color: color[state],
+                fontSize: 11, fontWeight: 600,
+                cursor: (state === 'checking' || state === 'downloading') ? 'default' : 'pointer',
+                transition: 'all 0.3s', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
+            }}
+        >
+            {label[state]}
+            {state === 'downloading' && (
+                <span style={{
+                    display: 'inline-block', width: 36, height: 3,
+                    background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative',
+                }}>
+                    <span style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${percent}%`, background: '#0077ff', borderRadius: 2 }} />
+                </span>
+            )}
+        </button>
+    );
+};
+
 const Header: React.FC<{
     currentPage: Page;
     setPage: (page: Page) => void;
@@ -249,6 +327,9 @@ const Header: React.FC<{
                             ⚙️ Admin Panel
                         </button>
                     )}
+                    {/* Check for Updates button — visible to all logged-in users */}
+                    {licenseSession && <UpdateButton />}
+
                     {isAuthenticated ? (
                         <>
                             {/* Notification Bell */}

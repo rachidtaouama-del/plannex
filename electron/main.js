@@ -73,6 +73,22 @@ ipcMain.handle('get-config', (event, key) => {
   return null;
 });
 
+// Manual update check triggered by the user clicking "Check for Updates" in the app
+ipcMain.handle('check-for-update', async () => {
+  if (!mainWindow || isDev) {
+    mainWindow?.webContents.send('update-status', { type: 'not-available' });
+    return;
+  }
+  const { autoUpdater } = require('electron-updater');
+  mainWindow.webContents.send('update-status', { type: 'checking' });
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (err) {
+    mainWindow.webContents.send('update-status', { type: 'error', message: err?.message || 'Update check failed' });
+  }
+});
+
+
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();

@@ -555,7 +555,12 @@ const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) =
   }, [schedulingFilters]);
 
   useEffect(() => {
-    // First try fast sessionStorage lookup, then rehydrate from Supabase session
+    // If we already have a licenseSession, skip the old auth system entirely
+    if (licenseSession) {
+      setIsAuthenticated(true);
+      return;
+    }
+    // Fallback: try to rehydrate old session
     const stored = retrieveUser();
     if (stored) {
       setCurrentUser(stored);
@@ -568,7 +573,8 @@ const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) =
         }
       });
     }
-  }, []);
+  }, [licenseSession]);
+
 
   const handleEnterApp = () => {
     if (isAuthenticated) {
@@ -1485,8 +1491,8 @@ const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) =
           {renderPage()}
         </Suspense>
       </Layout>
-      {isLoginModalOpen && <LoginPage onLoginSuccess={handleLoginSuccess} onCancel={() => setIsLoginModalOpen(false)} />}
       <VideoModal isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} />
+
     </>
   );
 };

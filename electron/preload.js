@@ -1,10 +1,6 @@
 /**
  * electron/preload.js
  * Plannex Desktop — Secure Context Bridge
- *
- * This script runs in the renderer process but has access to Node.js APIs.
- * It safely exposes only what the renderer needs via contextBridge.
- * This is Electron's security best practice (Context Isolation).
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -17,4 +13,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Safe config access
   getConfig: (key) => ipcRenderer.invoke('get-config', key),
+
+  // Auto-updater
+  checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
+  onUpdateStatus: (callback) => {
+    ipcRenderer.on('update-status', (_event, status) => callback(status));
+    // Return cleanup function
+    return () => ipcRenderer.removeAllListeners('update-status');
+  },
 });
+
