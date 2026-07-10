@@ -1459,7 +1459,7 @@ const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) =
         if (!licenseSession?.isAdmin) return <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
         return (
           <Suspense fallback={<PageLoader />}>
-            <AdminPanel />
+            <AdminPanel adminKey={licenseSession.activationKey} />
           </Suspense>
         );
       case 'landing':

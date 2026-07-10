@@ -4,7 +4,11 @@ import {
   resetPassword, sendNotification, getLoginLogs, License,
 } from '../../services/adminLicenseService';
 
-const AdminPanel: React.FC = () => {
+interface AdminPanelProps {
+  adminKey: string; // The admin's activation_key — used to authenticate every request
+}
+
+const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [logs, setLogs] = useState<{ username: string; logged_in_at: string; machine_name: string }[]>([]);
   const [activeTab, setActiveTab] = useState<'licenses' | 'logs'>('licenses');
@@ -18,13 +22,14 @@ const AdminPanel: React.FC = () => {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
-      const [lic, log] = await Promise.all([getAllLicenses(), getLoginLogs(50)]);
+      const [lic, log] = await Promise.all([getAllLicenses(adminKey), getLoginLogs(adminKey, 50)]);
       setLicenses(lic);
       setLogs(log);
     } catch (e: any) { setError('Failed to load data: ' + e.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [adminKey]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -34,14 +39,14 @@ const AdminPanel: React.FC = () => {
   };
 
   const toggleActive = async (lic: License) => {
-    await updateLicense(lic.id, { is_active: !lic.is_active });
+    await updateLicense(adminKey, lic.id, { is_active: !lic.is_active });
     flash(`${lic.username} ${!lic.is_active ? 'activated' : 'deactivated'}.`);
     loadData();
   };
 
   const handleDelete = async (lic: License) => {
     if (!confirm(`Permanently delete license for "${lic.username}"?`)) return;
-    await deleteLicense(lic.id);
+    await deleteLicense(adminKey, lic.id);
     flash(`License for ${lic.username} deleted.`);
     loadData();
   };
@@ -195,6 +200,7 @@ const AdminPanel: React.FC = () => {
       {/* Create License Modal */}
       {showCreateModal && (
         <CreateLicenseModal
+          adminKey={adminKey}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => { setShowCreateModal(false); loadData(); flash('New license created successfully!'); }}
         />
@@ -203,6 +209,7 @@ const AdminPanel: React.FC = () => {
       {/* Send Notification Modal */}
       {showNotifModal && (
         <SendNotifModal
+          adminKey={adminKey}
           license={showNotifModal}
           onClose={() => setShowNotifModal(null)}
           onSent={() => { setShowNotifModal(null); flash(`Notification sent to ${showNotifModal?.username}.`); }}
@@ -225,7 +232,7 @@ const AdminPanel: React.FC = () => {
               <button style={styles.modalCancelBtn} onClick={() => { setResetTarget(null); setNewPassword(''); }}>Cancel</button>
               <button style={styles.modalConfirmBtn} onClick={async () => {
                 if (!newPassword) return;
-                await resetPassword(resetTarget.id, newPassword);
+                await resetPassword(adminKey, resetTarget.id, newPassword);
                 setResetTarget(null); setNewPassword('');
                 flash(`Password reset for ${resetTarget.username}.`);
               }}>Reset Password</button>
@@ -238,7 +245,7 @@ const AdminPanel: React.FC = () => {
 };
 
 // ── Create License Modal ──────────────────────────────────────────────────────
-const CreateLicenseModal: React.FC<{ onClose: () => void; onCreated: () => void }> = ({ onClose, onCreated }) => {
+const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCreated: () => void }> = ({ adminKey, onClose, onCreated }) => {
   const [form, setForm] = useState({ username: '', password: '', companyName: '', duration: '365', notes: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -252,7 +259,7 @@ const CreateLicenseModal: React.FC<{ onClose: () => void; onCreated: () => void 
     try {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + parseInt(form.duration));
-      await createLicense({ username: form.username, password: form.password, companyName: form.companyName, expiresAt, notes: form.notes });
+      await createLicense(adminKey, { username: form.username, password: form.password, companyName: form.companyName, expiresAt, notes: form.notes });
       onCreated();
     } catch (e: any) { setError(e.message); setLoading(false); }
   };
@@ -300,14 +307,14 @@ const CreateLicenseModal: React.FC<{ onClose: () => void; onCreated: () => void 
 };
 
 // ── Send Notification Modal ───────────────────────────────────────────────────
-const SendNotifModal: React.FC<{ license: License; onClose: () => void; onSent: () => void }> = ({ license, onClose, onSent }) => {
+const SendNotifModal: React.FC<{ adminKey: string; license: License; onClose: () => void; onSent: () => void }> = ({ adminKey, license, onClose, onSent }) => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
     if (!message.trim()) return;
     setLoading(true);
-    await sendNotification(license.username, message.trim());
+    await sendNotification(adminKey, license.username, message.trim());
     setLoading(false);
     onSent();
   };

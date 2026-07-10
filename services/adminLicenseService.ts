@@ -1,38 +1,32 @@
-// services/adminLicenseService.ts
-// Admin-facing Supabase service — uses SECRET key (only in admin panel)
-// Has full read/write access to the license database
+/**
+ * adminLicenseService.ts
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Admin operations via SECURITY DEFINER RPC functions.
+ * Uses the safe ANON key — authentication is enforced server-side by the
+ * activation_key of the admin account (passed on every request).
+ */
 
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
 const SUPABASE_URL = 'https://hntqukjrmjpootxqddfi.supabase.co';
-const SUPABASE_SECRET_KEY = 'sb_secret_Nko_2spUKN_DwsV_oBP3DQ_wc19MJ_t';
+const SUPABASE_ANON_KEY = 'sb_publishable_SqyFH4KKAzbp8TBycHy2Hw_E0lLcf6t';
 
-// Service-role client — bypasses RLS, full access
-const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface License {
   id: string;
   username: string;
-  company_name: string | null;
+  company_name: string;
+  activation_key: string;
   expires_at: string;
   is_active: boolean;
   is_admin: boolean;
   grace_period_days: number;
-  notes: string | null;
-  machine_name: string | null;
+  notes: string;
   last_login_at: string | null;
   created_at: string;
-  activation_key: string;
-}
-
-export interface CreateLicenseInput {
-  username: string;
-  password: string;
-  companyName: string;
-  expiresAt: Date;
-  gracePeriodDays?: number;
-  notes?: string;
 }
 
 /** Generate a unique activation key */
@@ -42,89 +36,97 @@ function generateActivationKey(username: string): string {
   return `PLX-${prefix}-${uid}`;
 }
 
+// ── All functions require the admin's activation_key for server-side auth ─────
+
 /** Fetch all licenses */
-export async function getAllLicenses(): Promise<License[]> {
-  const { data, error } = await adminSupabase
-    .from('licenses')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data || [];
+export async function getAllLicenses(adminKey: string): Promise<License[]> {
+  const { data, error } = await supabase.rpc('admin_get_all_licenses', {
+    p_activation_key: adminKey,
+  });
+  if (error) throw new Error(error.message);
+  return (data as License[]) || [];
 }
 
-/** Create a new user license */
-export async function createLicense(input: CreateLicenseInput): Promise<License> {
-  const passwordHash = await bcrypt.hash(input.password, 10);
-  const activationKey = generateActivationKey(input.username);
-
-  const { data, error } = await adminSupabase
-    .from('licenses')
-    .insert({
-      username: input.username.toLowerCase().trim(),
-      password_hash: passwordHash,
-      activation_key: activationKey,
-      company_name: input.companyName,
-      expires_at: input.expiresAt.toISOString(),
-      is_active: true,
-      is_admin: false,
-      grace_period_days: input.gracePeriodDays ?? 7,
-      notes: input.notes || null,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/** Update license (expiry, active status, notes) */
-export async function updateLicense(
-  id: string,
-  updates: Partial<{
-    is_active: boolean;
-    expires_at: string;
-    grace_period_days: number;
-    notes: string;
-    company_name: string;
-  }>
+/** Create a new license */
+export async function createLicense(
+  adminKey: string,
+  opts: { username: string; password: string; companyName: string; expiresAt: Date; notes?: string }
 ): Promise<void> {
-  const { error } = await adminSupabase.from('licenses').update(updates).eq('id', id);
-  if (error) throw error;
+  const passwordHash = await bcrypt.hash(opts.password, 10);
+  const newKey = generateActivationKey(opts.username);
+
+  const { error } = await supabase.rpc('admin_create_license', {
+    p_activation_key:     adminKey,
+    p_username:           opts.username,
+    p_password_hash:      passwordHash,
+    p_company_name:       opts.companyName,
+    p_expires_at:         opts.expiresAt.toISOString(),
+    p_new_activation_key: newKey,
+    p_notes:              opts.notes || '',
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Update a license (any subset of fields) */
+export async function updateLicense(
+  adminKey: string,
+  id: string,
+  updates: { is_active?: boolean; expires_at?: string; company_name?: string; notes?: string }
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_update_license', {
+    p_activation_key: adminKey,
+    p_target_id:      id,
+    p_is_active:      updates.is_active      ?? null,
+    p_expires_at:     updates.expires_at     ?? null,
+    p_company_name:   updates.company_name   ?? null,
+    p_notes:          updates.notes          ?? null,
+  });
+  if (error) throw new Error(error.message);
 }
 
 /** Delete a license */
-export async function deleteLicense(id: string): Promise<void> {
-  const { error } = await adminSupabase.from('licenses').delete().eq('id', id);
-  if (error) throw error;
+export async function deleteLicense(adminKey: string, id: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_license', {
+    p_activation_key: adminKey,
+    p_target_id:      id,
+  });
+  if (error) throw new Error(error.message);
 }
 
 /** Reset a user's password */
-export async function resetPassword(id: string, newPassword: string): Promise<void> {
-  const passwordHash = await bcrypt.hash(newPassword, 10);
-  const { error } = await adminSupabase
-    .from('licenses')
-    .update({ password_hash: passwordHash })
-    .eq('id', id);
-  if (error) throw error;
+export async function resetPassword(adminKey: string, id: string, newPassword: string): Promise<void> {
+  const newHash = await bcrypt.hash(newPassword, 10);
+  const { error } = await supabase.rpc('admin_reset_password', {
+    p_activation_key: adminKey,
+    p_target_id:      id,
+    p_new_hash:       newHash,
+  });
+  if (error) throw new Error(error.message);
 }
 
-/** Send a notification to a user */
-export async function sendNotification(username: string, message: string): Promise<void> {
-  const { error } = await adminSupabase
-    .from('notifications')
-    .insert({ username, message, is_read: false });
-  if (error) throw error;
+/** Send a push notification to a user */
+export async function sendNotification(
+  adminKey: string,
+  targetUsername: string,
+  message: string
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_send_notification', {
+    p_activation_key:   adminKey,
+    p_target_username:  targetUsername,
+    p_message:          message,
+  });
+  if (error) throw new Error(error.message);
 }
 
-/** Get all login logs */
+/** Fetch recent login logs */
 export async function getLoginLogs(
-  limit = 100
+  adminKey: string,
+  limit = 50
 ): Promise<{ username: string; logged_in_at: string; machine_name: string }[]> {
-  const { data, error } = await adminSupabase
-    .from('login_logs')
-    .select('username, logged_in_at, machine_name')
-    .order('logged_in_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data || [];
+  const { data, error } = await supabase.rpc('admin_get_login_logs', {
+    p_activation_key: adminKey,
+    p_limit:          limit,
+  });
+  if (error) throw new Error(error.message);
+  return (data as any[]) || [];
 }
