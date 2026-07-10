@@ -281,63 +281,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onCancel }
                             </div>
                         </button>
 
-                        {/* ── DIVIDER ── */}
-                        <div className="flex items-center gap-3 py-1">
-                            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
-                            <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">ou</span>
-                            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
-                        </div>
-
-                        {/* ── SECONDARY BUTTON — Sign Up ── */}
-                        <a
-                            href="https://app.plannex.ai/plannex-account/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex items-center justify-center gap-3 w-full rounded-2xl py-3.5 font-black uppercase tracking-[0.2em] text-xs transition-all duration-300 active:scale-[0.98]"
-                            style={{
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.09)',
-                                color: '#64748b',
-                            }}
-                            onMouseEnter={e => {
-                                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(6,182,212,0.08)';
-                                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(6,182,212,0.3)';
-                                (e.currentTarget as HTMLAnchorElement).style.color = '#22d3ee';
-                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 0 20px rgba(6,182,212,0.1)';
-                            }}
-                            onMouseLeave={e => {
-                                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)';
-                                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.09)';
-                                (e.currentTarget as HTMLAnchorElement).style.color = '#64748b';
-                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none';
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                            <span>Créer un Compte</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                        </a>
                     </form>
 
-                    {/* ── BACK LINK ── */}
-                    <div className="mt-7 flex items-center justify-center">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300"
-                            style={{ color: '#334155' }}
-                            onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = '#94a3b8')}
-                            onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = '#334155')}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 group-hover:-translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                            Retour au site
-                        </button>
-                    </div>
+
+
                 </div>
             </div>
         </div>
