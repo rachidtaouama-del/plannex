@@ -16,9 +16,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState<License | null>(null);
   const [resetTarget, setResetTarget] = useState<License | null>(null);
+  const [editTarget, setEditTarget] = useState<License | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -152,6 +154,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
                       <td style={styles.td}>
                         {!lic.is_admin && (
                           <div style={{ display: 'flex', gap: 6 }}>
+                            <button style={{ ...styles.actionBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }} onClick={() => setEditTarget(lic)} title="Edit user details">✏️ Edit</button>
                             <button style={styles.actionBtn} onClick={() => setShowNotifModal(lic)} title="Send notification">📩</button>
                             <button
                               style={{ ...styles.actionBtn, ...(lic.is_active ? styles.deactivateBtn : styles.activateBtn) }}
@@ -205,6 +208,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
           onCreated={() => { setShowCreateModal(false); loadData(); flash('New license created successfully!'); }}
         />
       )}
+      {/* Edit User Modal */}
+      {editTarget && (
+        <EditUserModal
+          adminKey={adminKey}
+          license={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={(msg) => { setEditTarget(null); loadData(); flash(msg); }}
+        />
+      )}
+
 
       {/* Send Notification Modal */}
       {showNotifModal && (
@@ -353,6 +366,80 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
   );
 };
 
+// ── Edit User Modal ──────────────────────────────────────────────────────────────
+const EditUserModal: React.FC<{ adminKey: string; license: License; onClose: () => void; onSaved: (msg: string) => void }> = ({ adminKey, license, onClose, onSaved }) => {
+  const [form, setForm] = useState({
+    company_name: license.company_name || '',
+    notes: license.notes || '',
+    expires_at: license.expires_at ? license.expires_at.split('T')[0] : '',
+    is_active: license.is_active,
+    durationType: 'custom' as 'custom' | 'forever',
+  });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const handleSave = async () => {
+    setLoading(true); setErr('');
+    try {
+      const expiresAt = form.durationType === 'forever'
+        ? new Date('2099-12-31').toISOString()
+        : new Date(form.expires_at).toISOString();
+      await updateLicense(adminKey, license.id, {
+        company_name: form.company_name.trim(),
+        notes: form.notes.trim(),
+        expires_at: expiresAt,
+        is_active: form.is_active,
+      });
+      onSaved(`${license.username} updated successfully.`);
+    } catch (e: any) { setErr(e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={styles.modalBackdrop}>
+      <div style={{ ...styles.modal, width: 480 }}>
+        <h3 style={styles.modalTitle}>✏️ Edit User — <span style={{ color: '#00c896' }}>{license.username}</span></h3>
+        {err && <div style={styles.modalError}>{err}</div>}
+
+        <label style={styles.modalLabel}>Company Name</label>
+        <input style={{ ...styles.modalInput, marginBottom: 14 }} value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Company name" />
+
+        <label style={styles.modalLabel}>License Duration</label>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+          <button
+            onClick={() => setForm(f => ({ ...f, durationType: 'custom' }))}
+            style={{ ...styles.actionBtn, flex: 1, padding: '9px', background: form.durationType === 'custom' ? 'rgba(0,200,150,0.15)' : 'rgba(255,255,255,0.04)', color: form.durationType === 'custom' ? '#00c896' : '#64748b', border: `1px solid ${form.durationType === 'custom' ? 'rgba(0,200,150,0.4)' : 'rgba(255,255,255,0.08)'}` }}
+          >📅 Custom Days</button>
+          <button
+            onClick={() => setForm(f => ({ ...f, durationType: 'forever' }))}
+            style={{ ...styles.actionBtn, flex: 1, padding: '9px', background: form.durationType === 'forever' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)', color: form.durationType === 'forever' ? '#a78bfa' : '#64748b', border: `1px solid ${form.durationType === 'forever' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}` }}
+          >♾️ Forever</button>
+        </div>
+        {form.durationType === 'custom' && (
+          <input type="date" style={{ ...styles.modalInput, marginBottom: 14 }} value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} />
+        )}
+
+        <label style={styles.modalLabel}>Notes</label>
+        <textarea style={{ ...styles.modalInput, height: 70, resize: 'none', marginBottom: 16 }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes..." />
+
+        <label style={{ ...styles.modalLabel, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 20 }}>
+          <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
+          <span>Account Active</span>
+        </label>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button style={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
+          <button style={{ ...styles.modalConfirmBtn, opacity: loading ? 0.6 : 1 }} onClick={handleSave} disabled={loading}>
+            {loading ? 'Saving...' : '✓ Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
 // ── Send Notification Modal ───────────────────────────────────────────────────
 const SendNotifModal: React.FC<{ adminKey: string; license: License; onClose: () => void; onSent: () => void }> = ({ adminKey, license, onClose, onSent }) => {
   const [message, setMessage] = useState('');
@@ -389,7 +476,8 @@ const SendNotifModal: React.FC<{ adminKey: string; license: License; onClose: ()
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
-  container: { padding: '32px', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#94a3b8', maxWidth: 1100 },
+  container: { padding: '32px', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#94a3b8' },
+
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
   title: { margin: 0, fontSize: 26, fontWeight: 700, color: '#f8fafc' },
   subtitle: { margin: '4px 0 0', fontSize: 14, color: '#64748b' },

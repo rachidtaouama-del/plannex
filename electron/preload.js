@@ -18,8 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
   onUpdateStatus: (callback) => {
     ipcRenderer.on('update-status', (_event, status) => callback(status));
-    // Return cleanup function
     return () => ipcRenderer.removeAllListeners('update-status');
   },
+
+  // App control
+  quitApp: () => ipcRenderer.invoke('quit-app'),
 });
 

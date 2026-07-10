@@ -4,7 +4,8 @@
  * Author: Rachid Taouama
  */
 
-const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog, Menu } = require('electron');
+
 const path = require('path');
 const config = require('./config');
 
@@ -34,7 +35,13 @@ function createWindow() {
     },
     show: false, // Hidden until ready-to-show to avoid flash
     backgroundColor: '#0f1729',
+    autoHideMenuBar: true,        // Hide File/Edit/View menu bar
   });
+
+  // Remove the default application menu entirely
+  Menu.setApplicationMenu(null);
+  mainWindow.maximize();          // Start maximized (full screen)
+
 
   // ── Load the app ────────────────────────────────────────────────────────────
   if (isDev) {
@@ -72,6 +79,9 @@ ipcMain.handle('get-config', (event, key) => {
   if (safeKeys.includes(key)) return config[key];
   return null;
 });
+
+// Quit the app from renderer (called when user clicks Exit on login screen)
+ipcMain.handle('quit-app', () => app.quit());
 
 // Manual update check triggered by the user clicking "Check for Updates" in the app
 ipcMain.handle('check-for-update', async () => {

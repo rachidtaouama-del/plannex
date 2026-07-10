@@ -187,6 +187,21 @@ const LicenseLoginScreen: React.FC<LicenseLoginScreenProps> = ({ onSuccess }) =>
               Contact Rachid Taouama
             </a>
           </p>
+          {/* Exit button — only visible inside Electron */}
+          {!!(window as any).electronAPI?.quitApp && (
+            <button
+              onClick={() => (window as any).electronAPI.quitApp()}
+              style={{
+                marginTop: 14, background: 'none', border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 8, color: '#ef444488', fontSize: 12, cursor: 'pointer',
+                padding: '7px 20px', width: '100%', transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.08)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = '#ef444488'; }}
+            >
+              ✕ Exit Application
+            </button>
+          )}
         </div>
       </div>
 

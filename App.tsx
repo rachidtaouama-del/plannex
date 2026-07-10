@@ -447,7 +447,8 @@ const PlannerSessionLoader: React.FC<{ onTimeout: () => void }> = ({ onTimeout }
   );
 };
 
-const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) => {
+const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => void }> = ({ licenseSession, onLicenseLogout }) => {
+
   const [activePage, setActivePage] = useState<Page>('landing');
   const [plannerSubPage, setPlannerSubPage] = useState<'dashboard' | 'team' | 'evaluation' | 'report'>('dashboard');
 
@@ -1486,7 +1487,9 @@ const App: React.FC<{ licenseSession: LicenseSession }> = ({ licenseSession }) =
         setIsVideoModalOpen={setIsVideoModalOpen}
         onBack={activePage === 'planner' ? handleBackToScheduling : undefined}
         licenseSession={licenseSession}
+        onLicenseLogout={onLicenseLogout}
       >
+
         <Suspense fallback={<PageLoader />}>
           {renderPage()}
         </Suspense>
@@ -1530,7 +1533,11 @@ const AppRoot: React.FC = () => {
   return (
     <>
       <LicenseStatusBanner session={licenseSession} />
-      <App licenseSession={licenseSession} />
+      <App licenseSession={licenseSession} onLicenseLogout={() => {
+        localStorage.removeItem('plannex_saved_username');
+        setLicenseSession(null);
+      }} />
+
       {showNotifModal && pendingNotifications.length > 0 && (
         <NotificationModal
           notifications={pendingNotifications}

@@ -15,7 +15,9 @@ interface LayoutProps {
     setIsVideoModalOpen: (isOpen: boolean) => void;
     onBack?: () => void;
     licenseSession?: LicenseSession;
+    onLicenseLogout?: () => void;
 }
+
 
 // Custom smooth scroll function for "impressive" slow animation
 const smoothScroll = (targetId: string, duration: number) => {
@@ -157,31 +159,45 @@ const UpdateButton: React.FC = () => {
         error: '#ef4444',
     };
 
+    const needsAttention = state === 'available' || state === 'downloaded';
+
     return (
-        <button
-            onClick={handleClick}
-            disabled={state === 'checking' || state === 'downloading'}
-            title="Check for app updates"
-            style={{
-                padding: '6px 12px', marginLeft: 6,
-                background: `${color[state]}15`,
-                border: `1px solid ${color[state]}40`,
-                borderRadius: 8, color: color[state],
-                fontSize: 11, fontWeight: 600,
-                cursor: (state === 'checking' || state === 'downloading') ? 'default' : 'pointer',
-                transition: 'all 0.3s', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-            }}
-        >
-            {label[state]}
-            {state === 'downloading' && (
-                <span style={{
-                    display: 'inline-block', width: 36, height: 3,
-                    background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative',
-                }}>
-                    <span style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${percent}%`, background: '#0077ff', borderRadius: 2 }} />
-                </span>
+        <>
+            {needsAttention && (
+                <style>{`
+                  @keyframes pulseUpdate {
+                    0%, 100% { box-shadow: 0 0 0 0 ${color[state]}55; transform: scale(1); }
+                    50% { box-shadow: 0 0 0 6px ${color[state]}00; transform: scale(1.05); }
+                  }
+                `}</style>
             )}
-        </button>
+            <button
+                onClick={handleClick}
+                disabled={state === 'checking' || state === 'downloading'}
+                title="Check for app updates"
+                style={{
+                    padding: '6px 12px', marginLeft: 6,
+                    background: `${color[state]}15`,
+                    border: `1px solid ${color[state]}60`,
+                    borderRadius: 8, color: color[state],
+                    fontSize: 11, fontWeight: 700,
+                    cursor: (state === 'checking' || state === 'downloading') ? 'default' : 'pointer',
+                    transition: 'all 0.3s', whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    animation: needsAttention ? 'pulseUpdate 1.5s ease-in-out infinite' : 'none',
+                }}
+            >
+                {label[state]}
+                {state === 'downloading' && (
+                    <span style={{
+                        display: 'inline-block', width: 36, height: 3,
+                        background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative',
+                    }}>
+                        <span style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${percent}%`, background: '#0077ff', borderRadius: 2 }} />
+                    </span>
+                )}
+            </button>
+        </>
     );
 };
 
@@ -195,7 +211,9 @@ const Header: React.FC<{
     setIsVideoModalOpen: (isOpen: boolean) => void;
     onBack?: () => void;
     licenseSession?: LicenseSession;
-}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack, licenseSession }) => {
+    onLicenseLogout?: () => void;
+}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout }) => {
+
 
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
@@ -329,6 +347,26 @@ const Header: React.FC<{
                     )}
                     {/* Check for Updates button — visible to all logged-in users */}
                     {licenseSession && <UpdateButton />}
+
+                    {/* Quit / Sign Out button — goes back to license login */}
+                    {licenseSession && (
+                        <button
+                            onClick={onLicenseLogout}
+                            style={{
+                                padding: '6px 12px', marginLeft: 6,
+                                background: 'rgba(239,68,68,0.07)',
+                                border: '1px solid rgba(239,68,68,0.2)',
+                                borderRadius: 8, color: '#ef444499',
+                                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.15)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.07)'; (e.currentTarget as HTMLElement).style.color = '#ef444499'; }}
+                            title="Sign out and return to login"
+                        >
+                            ⏻ Quit
+                        </button>
+                    )}
 
                     {isAuthenticated ? (
                         <>
@@ -526,12 +564,13 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
 };
 
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack, licenseSession }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout }) => {
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
     return (
         <div className="flex flex-col min-h-screen bg-black text-slate-200">
-            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} licenseSession={licenseSession} />
+            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} licenseSession={licenseSession} onLicenseLogout={onLicenseLogout} />
+
             <main className={`flex-grow flex flex-col ${isInfoPage && currentPage !== 'landing' ? 'pt-24' : ''}`}>
                 {children}
             </main>
