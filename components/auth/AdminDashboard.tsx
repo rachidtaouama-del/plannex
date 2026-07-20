@@ -11,10 +11,16 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, username, onNavigateToUserManagement, onNavigateToProjectHub }) => {
     const [hoveredCard, setHoveredCard] = useState<string | null>(null);
     const [tick, setTick] = useState(0);
+    const [showNotification, setShowNotification] = useState(true);
 
     useEffect(() => {
         const id = setInterval(() => setTick(t => t + 1), 1000);
         return () => clearInterval(id);
+    }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowNotification(false), 7000);
+        return () => clearTimeout(timer);
     }, []);
 
     const now = new Date();
@@ -65,6 +71,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
 
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen bg-[#020202] overflow-hidden py-20 px-6 font-sans">
+            
+            {/* ── Sleek Welcome Notification ── */}
+            {showNotification && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        top: 80,
+                        right: 24,
+                        zIndex: 100,
+                        background: 'rgba(15, 23, 42, 0.8)',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 16,
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 16,
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(16, 185, 129, 0.1) inset',
+                        animation: 'slideInRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards, fadeOutRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) 6.4s forwards',
+                    }}
+                >
+                    <div style={{
+                        width: 40, height: 40, borderRadius: 12, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981'
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Welcome back</div>
+                        <div style={{ color: '#f8fafc', fontSize: 14, fontWeight: 700 }}>{username || 'Operator'}</div>
+                    </div>
+                    <button 
+                        onClick={() => setShowNotification(false)}
+                        style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, marginLeft: 8 }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {/* ── Animated grid ── */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.025)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
@@ -230,6 +279,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
                 @keyframes blink {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0; }
+                }
+                @keyframes slideInRight {
+                    from { opacity: 0; transform: translateX(50px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes fadeOutRight {
+                    from { opacity: 1; transform: translateX(0); }
+                    to { opacity: 0; transform: translateX(50px); }
                 }
             `}</style>
         </div>
