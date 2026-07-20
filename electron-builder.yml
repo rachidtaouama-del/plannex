@@ -28,10 +28,7 @@ win:
     - target: nsis
       arch: x64
   icon: assets/icon.ico
-  signtoolOptions:
-    publisherName: "Rachid Taouama"
-  # No code signing — users click "More info → Run anyway" on SmartScreen
-  # signingHashAlgorithms: null
+  # No code signing certificate — signature verification disabled in updater
 
 # ─── NSIS Installer (Setup Wizard) ───────────────────────────────────────────
 nsis:

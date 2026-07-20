@@ -18,6 +18,8 @@ autoUpdater.logger.transports.file.level = 'info';
 // ─── Update settings ──────────────────────────────────────────────────────────
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+// Disable code-signature verification — no paid cert available
+autoUpdater.verifyUpdateCodeSignature = false;
 
 // ─── Setup function called from main.js ──────────────────────────────────────
 function setupUpdater(mainWindow) {
