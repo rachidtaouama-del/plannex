@@ -135,69 +135,81 @@ const UpdateButton: React.FC = () => {
 
     const handleClick = () => {
         if (state === 'checking' || state === 'downloading') return;
+        
+        if (state === 'downloaded') {
+            if (window.confirm('Update Ready! Do you want to restart PlanneX now to install version ' + version + '?')) {
+                (window as any).electronAPI.installUpdate?.();
+            }
+            return;
+        }
+
         (window as any).electronAPI.checkForUpdate();
         setState('checking');
     };
 
     const label: Record<UpdateState, string> = {
-        idle: '↑ Update',
-        checking: '⟳ Checking...',
-        available: `↓ v${version} Available`,
-        downloading: `↓ ${percent}%`,
-        downloaded: `✓ Ready v${version}`,
-        'up-to-date': '✓ Up to Date',
-        error: '✕ Failed',
+        idle: 'Check Updates',
+        checking: 'Checking...',
+        available: `v${version} found`,
+        downloading: `Downloading ${percent}%`,
+        downloaded: `Restart to Update (v${version})`,
+        'up-to-date': 'Up to Date',
+        error: 'Update Failed',
     };
 
-    const color: Record<UpdateState, string> = {
-        idle: '#64748b',
-        checking: '#94a3b8',
-        available: '#00c896',
-        downloading: '#0077ff',
-        downloaded: '#00c896',
-        'up-to-date': '#22c55e',
-        error: '#ef4444',
-    };
-
-    const needsAttention = state === 'available' || state === 'downloaded';
+    const isHighlight = state === 'available' || state === 'downloaded';
 
     return (
-        <>
-            {needsAttention && (
-                <style>{`
-                  @keyframes pulseUpdate {
-                    0%, 100% { box-shadow: 0 0 0 0 ${color[state]}55; transform: scale(1); }
-                    50% { box-shadow: 0 0 0 6px ${color[state]}00; transform: scale(1.05); }
-                  }
-                `}</style>
+        <button
+            onClick={handleClick}
+            disabled={state === 'checking' || state === 'downloading'}
+            title="Check for app updates"
+            style={{
+                position: 'relative',
+                overflow: 'hidden',
+                padding: '8px 16px',
+                marginLeft: 12,
+                background: isHighlight ? 'linear-gradient(135deg, #00c896, #0077ff)' : 'rgba(255,255,255,0.05)',
+                border: isHighlight ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12,
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: (state === 'checking' || state === 'downloading') ? 'wait' : 'pointer',
+                transition: 'all 0.3s',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: isHighlight ? '0 4px 16px rgba(0,200,150,0.3)' : 'none',
+                opacity: (state === 'checking' || state === 'downloading') ? 0.7 : 1
+            }}
+            onMouseEnter={e => {
+                if (!isHighlight && state !== 'checking' && state !== 'downloading') {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                }
+            }}
+            onMouseLeave={e => {
+                if (!isHighlight && state !== 'checking' && state !== 'downloading') {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                }
+            }}
+        >
+            <span style={{ 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 16, height: 16, borderRadius: '50%',
+                background: isHighlight ? 'rgba(255,255,255,0.2)' : 'transparent'
+            }}>
+                {state === 'downloaded' ? '⚡' : '⟳'}
+            </span>
+            {label[state]}
+            
+            {state === 'downloading' && (
+                <div style={{ position: 'absolute', bottom: 0, left: 0, height: 3, width: '100%', background: 'rgba(255,255,255,0.1)' }}>
+                    <div style={{ height: '100%', width: `${percent}%`, background: '#fff', transition: 'width 0.2s' }} />
+                </div>
             )}
-            <button
-                onClick={handleClick}
-                disabled={state === 'checking' || state === 'downloading'}
-                title="Check for app updates"
-                style={{
-                    padding: '6px 12px', marginLeft: 6,
-                    background: `${color[state]}15`,
-                    border: `1px solid ${color[state]}60`,
-                    borderRadius: 8, color: color[state],
-                    fontSize: 11, fontWeight: 700,
-                    cursor: (state === 'checking' || state === 'downloading') ? 'default' : 'pointer',
-                    transition: 'all 0.3s', whiteSpace: 'nowrap',
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    animation: needsAttention ? 'pulseUpdate 1.5s ease-in-out infinite' : 'none',
-                }}
-            >
-                {label[state]}
-                {state === 'downloading' && (
-                    <span style={{
-                        display: 'inline-block', width: 36, height: 3,
-                        background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', position: 'relative',
-                    }}>
-                        <span style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${percent}%`, background: '#0077ff', borderRadius: 2 }} />
-                    </span>
-                )}
-            </button>
-        </>
+        </button>
     );
 };
 
@@ -353,18 +365,19 @@ const Header: React.FC<{
                         <button
                             onClick={onLicenseLogout}
                             style={{
-                                padding: '6px 12px', marginLeft: 6,
-                                background: 'rgba(239,68,68,0.07)',
+                                padding: '8px 16px', marginLeft: 6,
+                                background: 'rgba(239,68,68,0.1)',
                                 border: '1px solid rgba(239,68,68,0.2)',
-                                borderRadius: 8, color: '#ef444499',
-                                fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                                transition: 'all 0.2s',
+                                borderRadius: 12, color: '#f87171',
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                display: 'flex', alignItems: 'center', gap: 6,
                             }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.15)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.07)'; (e.currentTarget as HTMLElement).style.color = '#ef444499'; }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.2)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(239,68,68,0.2)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
                             title="Sign out and return to login"
                         >
-                            ⏻ Quit
+                            <span>⏻</span> Quit
                         </button>
                     )}
 
@@ -431,13 +444,6 @@ const Header: React.FC<{
                                     </span>
                                     <span className="text-sm text-slate-200 font-bold leading-none">{user?.firstName || user?.username}</span>
                                 </div>
-                                <div className="h-4 w-[1px] bg-slate-800 mx-2"></div>
-                                <button
-                                    onClick={onLogout}
-                                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-400 transition-colors"
-                                >
-                                    Quitter
-                                </button>
                             </div>
                         </>
                     ) : (

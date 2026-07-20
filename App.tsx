@@ -1510,8 +1510,8 @@ const AppRoot: React.FC = () => {
 
   const handleLicenseLogin = async (session: LicenseSession) => {
     setLicenseSession(session);
-    logLogin(session.username, session.activationKey).catch(() => {});
-    const notifs = await fetchNotifications(session.username, session.activationKey);
+    logLogin().catch(() => {});
+    const notifs = await fetchNotifications();
     if (notifs.length > 0) {
       setPendingNotifications(notifs);
       setShowNotifModal(true);

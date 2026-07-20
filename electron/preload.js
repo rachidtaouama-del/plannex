@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto-updater
   checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
   onUpdateStatus: (callback) => {
     ipcRenderer.on('update-status', (_event, status) => callback(status));
     return () => ipcRenderer.removeAllListeners('update-status');
@@ -23,5 +24,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App control
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  restartApp: () => { ipcRenderer.invoke('quit-app'); }, // will be overridden below
+
+  // License system
+  getMachineId: () => ipcRenderer.invoke('get-machine-id'),
+  loadLicenseFile: () => ipcRenderer.invoke('load-license-file'),
+  saveLicenseFile: (content, filename) => ipcRenderer.invoke('save-license-file', { content, filename }),
+
+  // User profile (AppData — survives app updates)
+  profileRead:   ()     => ipcRenderer.invoke('profile-read'),
+  profileWrite:  (data) => ipcRenderer.invoke('profile-write', data),
+  profileDelete: ()     => ipcRenderer.invoke('profile-delete'),
 });
+
 

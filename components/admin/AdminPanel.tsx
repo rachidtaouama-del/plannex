@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getAllLicenses, createLicense, updateLicense, deleteLicense,
-  resetPassword, sendNotification, getLoginLogs, License,
+  regenerateLicenseFile, getLoginLogs, License,
 } from '../../services/adminLicenseService';
 
 interface AdminPanelProps {
-  adminKey: string; // The admin's activation_key — used to authenticate every request
+  adminKey: string;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
@@ -14,17 +14,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'logs'>('licenses');
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showNotifModal, setShowNotifModal] = useState<License | null>(null);
-  const [resetTarget, setResetTarget] = useState<License | null>(null);
   const [editTarget, setEditTarget] = useState<License | null>(null);
-  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-
   const loadData = useCallback(async () => {
     setLoading(true);
-    setError('');
     try {
       const [lic, log] = await Promise.all([getAllLicenses(adminKey), getLoginLogs(adminKey, 50)]);
       setLicenses(lic);
@@ -35,10 +30,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const flash = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(''), 3500);
-  };
+  const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(''), 3500); };
 
   const toggleActive = async (lic: License) => {
     await updateLicense(adminKey, lic.id, { is_active: !lic.is_active });
@@ -53,13 +45,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
     loadData();
   };
 
-  const getDaysLeft = (expiresAt: string) => {
-    const diff = new Date(expiresAt).getTime() - Date.now();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const handleDownload = async (lic: License) => {
+    try {
+      const content = await regenerateLicenseFile(lic);
+      const filename = `${lic.username}_${lic.company_name.replace(/\s+/g, '_')}.plxlicense`;
+      if ((window as any).electronAPI?.saveLicenseFile) {
+        await (window as any).electronAPI.saveLicenseFile(content, filename);
+        flash(`License file saved for ${lic.username}.`);
+      } else {
+        // Browser fallback
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+        flash(`License file downloaded for ${lic.username}.`);
+      }
+    } catch (e: any) { setError('Failed to generate license: ' + e.message); }
   };
 
+  const getDaysLeft = (expiresAt: string) => Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
   const getStatusBadge = (lic: License) => {
-    if (lic.is_admin) return { label: 'Admin', color: '#8b5cf6' };
     if (!lic.is_active) return { label: 'Blocked', color: '#64748b' };
     const days = getDaysLeft(lic.expires_at);
     if (days <= 0) return { label: 'Expired', color: '#ef4444' };
@@ -70,7 +77,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>⚙️ Admin Panel</h1>
@@ -82,17 +88,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
         </div>
       </div>
 
-      {/* Alerts */}
       {error && <div style={styles.errorBanner}>{error}</div>}
       {success && <div style={styles.successBanner}>✓ {success}</div>}
 
       {/* Stats */}
       <div style={styles.statsRow}>
         {[
-          { label: 'Total Licenses', value: licenses.filter(l => !l.is_admin).length, color: '#0077ff' },
-          { label: 'Active', value: licenses.filter(l => l.is_active && !l.is_admin && getDaysLeft(l.expires_at) > 0).length, color: '#00c896' },
-          { label: 'Expiring Soon', value: licenses.filter(l => { const d = getDaysLeft(l.expires_at); return d > 0 && d <= 30 && !l.is_admin; }).length, color: '#f59e0b' },
-          { label: 'Expired/Blocked', value: licenses.filter(l => !l.is_admin && (!l.is_active || getDaysLeft(l.expires_at) <= 0)).length, color: '#ef4444' },
+          { label: 'Total Licenses', value: licenses.length, color: '#0077ff' },
+          { label: 'Active', value: licenses.filter(l => l.is_active && getDaysLeft(l.expires_at) > 0).length, color: '#00c896' },
+          { label: 'Expiring Soon', value: licenses.filter(l => { const d = getDaysLeft(l.expires_at); return d > 0 && d <= 30; }).length, color: '#f59e0b' },
+          { label: 'Expired/Blocked', value: licenses.filter(l => !l.is_active || getDaysLeft(l.expires_at) <= 0).length, color: '#ef4444' },
         ].map(s => (
           <div key={s.label} style={styles.statCard}>
             <span style={{ ...styles.statValue, color: s.color }}>{s.value}</span>
@@ -104,11 +109,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
       {/* Tabs */}
       <div style={styles.tabs}>
         {(['licenses', 'logs'] as const).map(tab => (
-          <button
-            key={tab}
-            style={{ ...styles.tab, ...(activeTab === tab ? styles.tabActive : {}) }}
-            onClick={() => setActiveTab(tab)}
-          >
+          <button key={tab} style={{ ...styles.tab, ...(activeTab === tab ? styles.tabActive : {}) }} onClick={() => setActiveTab(tab)}>
             {tab === 'licenses' ? '🔑 Licenses' : '📋 Login History'}
           </button>
         ))}
@@ -117,55 +118,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
       {/* Licenses Table */}
       {activeTab === 'licenses' && (
         <div style={styles.tableWrap}>
-          {loading ? (
-            <div style={styles.loadingMsg}>Loading licenses...</div>
-          ) : (
+          {loading ? <div style={styles.loadingMsg}>Loading...</div> : (
             <table style={styles.table}>
               <thead>
-                <tr>
-                  {['Username', 'Company', 'Status', 'Expires', 'Last Login', 'Actions'].map(h => (
-                    <th key={h} style={styles.th}>{h}</th>
-                  ))}
-                </tr>
+                <tr>{['Username', 'Company', 'Machine ID', 'Status', 'Expires', 'Actions'].map(h => <th key={h} style={styles.th}>{h}</th>)}</tr>
               </thead>
               <tbody>
+                {licenses.length === 0 && (
+                  <tr><td colSpan={6} style={{ ...styles.td, textAlign: 'center', color: '#475569', padding: 32 }}>No licenses yet. Click "+ New License" to create one.</td></tr>
+                )}
                 {licenses.map(lic => {
                   const badge = getStatusBadge(lic);
                   const days = getDaysLeft(lic.expires_at);
                   return (
                     <tr key={lic.id} style={styles.tr}>
-                      <td style={styles.td}>
-                        <strong style={{ color: '#f8fafc' }}>{lic.username}</strong>
-                        {lic.is_admin && <span style={styles.adminTag}>DEVELOPER</span>}
-                      </td>
+                      <td style={styles.td}><strong style={{ color: '#f8fafc' }}>{lic.username}</strong></td>
                       <td style={styles.td}>{lic.company_name || '—'}</td>
+                      <td style={styles.td}><span style={{ fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }}>{lic.machine_id || '—'}</span></td>
                       <td style={styles.td}>
-                        <span style={{ ...styles.badge, background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}>
-                          {badge.label}
-                        </span>
+                        <span style={{ ...styles.badge, background: badge.color + '22', color: badge.color, border: `1px solid ${badge.color}44` }}>{badge.label}</span>
                       </td>
                       <td style={styles.td}>
-                        {lic.is_admin ? 'Never' : new Date(lic.expires_at).toLocaleDateString('en-GB')}
-                        {!lic.is_admin && days > 0 && days <= 30 && <span style={{ color: '#f59e0b', fontSize: 11, marginLeft: 6 }}>({days}d)</span>}
+                        {new Date(lic.expires_at).toLocaleDateString('en-GB')}
+                        {days > 0 && days <= 30 && <span style={{ color: '#f59e0b', fontSize: 11, marginLeft: 6 }}>({days}d)</span>}
                       </td>
                       <td style={styles.td}>
-                        {lic.last_login_at ? new Date(lic.last_login_at).toLocaleDateString('en-GB') : 'Never'}
-                      </td>
-                      <td style={styles.td}>
-                        {!lic.is_admin && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button style={{ ...styles.actionBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }} onClick={() => setEditTarget(lic)} title="Edit user details">✏️ Edit</button>
-                            <button style={styles.actionBtn} onClick={() => setShowNotifModal(lic)} title="Send notification">📩</button>
-                            <button
-                              style={{ ...styles.actionBtn, ...(lic.is_active ? styles.deactivateBtn : styles.activateBtn) }}
-                              onClick={() => toggleActive(lic)}
-                            >
-                              {lic.is_active ? '⛔ Block' : '✅ Activate'}
-                            </button>
-                            <button style={{ ...styles.actionBtn, ...styles.resetBtn }} onClick={() => setResetTarget(lic)}>🔑 Reset PW</button>
-                            <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={() => handleDelete(lic)}>🗑️</button>
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button style={{ ...styles.actionBtn, color: '#00c896', borderColor: 'rgba(0,200,150,0.3)' }} onClick={() => handleDownload(lic)} title="Download .plxlicense file">⬇ Download</button>
+                          <button style={{ ...styles.actionBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }} onClick={() => setEditTarget(lic)} title="Edit">✏️ Edit</button>
+                          <button style={{ ...styles.actionBtn, ...(lic.is_active ? styles.deactivateBtn : styles.activateBtn) }} onClick={() => toggleActive(lic)}>
+                            {lic.is_active ? '⛔ Block' : '✅ Activate'}
+                          </button>
+                          <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={() => handleDelete(lic)}>🗑️</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -176,23 +161,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
         </div>
       )}
 
-      {/* Login Logs */}
+      {/* Logs */}
       {activeTab === 'logs' && (
         <div style={styles.tableWrap}>
           <table style={styles.table}>
-            <thead>
-              <tr>
-                {['Username', 'Logged In At', 'Machine'].map(h => (
-                  <th key={h} style={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+            <thead><tr>{['Username', 'Logged In At', 'Machine ID'].map(h => <th key={h} style={styles.th}>{h}</th>)}</tr></thead>
             <tbody>
+              {logs.length === 0 && <tr><td colSpan={3} style={{ ...styles.td, textAlign: 'center', color: '#475569', padding: 32 }}>No login history yet.</td></tr>}
               {logs.map((log, i) => (
                 <tr key={i} style={styles.tr}>
                   <td style={styles.td}><strong style={{ color: '#f8fafc' }}>{log.username}</strong></td>
                   <td style={styles.td}>{new Date(log.logged_in_at).toLocaleString('en-GB')}</td>
-                  <td style={styles.td}>{log.machine_name || '—'}</td>
+                  <td style={styles.td}><span style={{ fontFamily: 'monospace', fontSize: 12 }}>{log.machine_name || '—'}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -200,15 +180,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
         </div>
       )}
 
-      {/* Create License Modal */}
       {showCreateModal && (
         <CreateLicenseModal
           adminKey={adminKey}
           onClose={() => setShowCreateModal(false)}
-          onCreated={() => { setShowCreateModal(false); loadData(); flash('New license created successfully!'); }}
+          onCreated={async (content, username, company) => {
+            setShowCreateModal(false);
+            loadData();
+            // Auto-download the file
+            const filename = `${username}_${company.replace(/\s+/g, '_')}.plxlicense`;
+            if ((window as any).electronAPI?.saveLicenseFile) {
+              await (window as any).electronAPI.saveLicenseFile(content, filename);
+            } else {
+              const blob = new Blob([content], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+              URL.revokeObjectURL(url);
+            }
+            flash(`License created and file downloaded for ${username}!`);
+          }}
         />
       )}
-      {/* Edit User Modal */}
+
       {editTarget && (
         <EditUserModal
           adminKey={adminKey}
@@ -217,82 +210,45 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ adminKey }) => {
           onSaved={(msg) => { setEditTarget(null); loadData(); flash(msg); }}
         />
       )}
-
-
-      {/* Send Notification Modal */}
-      {showNotifModal && (
-        <SendNotifModal
-          adminKey={adminKey}
-          license={showNotifModal}
-          onClose={() => setShowNotifModal(null)}
-          onSent={() => { setShowNotifModal(null); flash(`Notification sent to ${showNotifModal?.username}.`); }}
-        />
-      )}
-
-      {/* Reset Password Modal */}
-      {resetTarget && (
-        <div style={styles.modalBackdrop}>
-          <div style={styles.modal}>
-            <h3 style={styles.modalTitle}>Reset Password — {resetTarget.username}</h3>
-            <input
-              style={styles.modalInput}
-              type="password"
-              placeholder="New password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-            />
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button style={styles.modalCancelBtn} onClick={() => { setResetTarget(null); setNewPassword(''); }}>Cancel</button>
-              <button style={styles.modalConfirmBtn} onClick={async () => {
-                if (!newPassword) return;
-                await resetPassword(adminKey, resetTarget.id, newPassword);
-                setResetTarget(null); setNewPassword('');
-                flash(`Password reset for ${resetTarget.username}.`);
-              }}>Reset Password</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 // ── Create License Modal ──────────────────────────────────────────────────────
-const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCreated: () => void }> = ({ adminKey, onClose, onCreated }) => {
-  const [form, setForm] = useState({ username: '', password: '', companyName: '', notes: '' });
+const CreateLicenseModal: React.FC<{
+  adminKey: string;
+  onClose: () => void;
+  onCreated: (content: string, username: string, company: string) => void;
+}> = ({ adminKey, onClose, onCreated }) => {
+  const [form, setForm] = useState({ username: '', companyName: '', machineId: '', notes: '' });
   const [durationType, setDurationType] = useState<'custom' | 'forever'>('custom');
-  const [customDays, setCustomDays] = useState('365');
+  const [customDays, setCustomDays] = useState('30');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.username || !form.password || !form.companyName) { setError('All fields required.'); return; }
-    if (durationType === 'custom') {
-      const days = parseInt(customDays);
-      if (!days || days < 1) { setError('Enter a valid number of days (minimum 1).'); return; }
-    }
+    if (!form.username || !form.companyName || !form.machineId) { setError('Username, Company and Machine ID are required.'); return; }
+    if (durationType === 'custom' && (!customDays || parseInt(customDays) < 1)) { setError('Enter a valid number of days.'); return; }
     setLoading(true);
     try {
       const expiresAt = durationType === 'forever'
         ? new Date('2099-12-31T23:59:59Z')
         : (() => { const d = new Date(); d.setDate(d.getDate() + parseInt(customDays)); return d; })();
-      await createLicense(adminKey, { username: form.username, password: form.password, companyName: form.companyName, expiresAt, notes: form.notes });
-      onCreated();
+      const content = await createLicense(adminKey, { username: form.username, companyName: form.companyName, machineId: form.machineId, expiresAt, notes: form.notes });
+      onCreated(content, form.username, form.companyName);
     } catch (e: any) { setError(e.message); setLoading(false); }
   };
 
   return (
     <div style={styles.modalBackdrop}>
-      <div style={{ ...styles.modal, width: 480 }}>
+      <div style={{ ...styles.modal, width: 500 }}>
         <h3 style={styles.modalTitle}>Create New License</h3>
         {error && <div style={styles.modalError}>{error}</div>}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
             { label: 'Username', key: 'username', placeholder: 'e.g. john.smith' },
-            { label: 'Password', key: 'password', placeholder: 'Set initial password' },
             { label: 'Company Name', key: 'companyName', placeholder: 'e.g. Sonatrach' },
           ].map(f => (
             <div key={f.key}>
@@ -301,48 +257,35 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
             </div>
           ))}
 
-          {/* Duration picker */}
+          {/* Machine ID */}
+          <div>
+            <label style={styles.modalLabel}>Client Machine ID <span style={{ color: '#64748b' }}>(client must send you this)</span></label>
+            <input style={{ ...styles.modalInput, fontFamily: 'monospace', letterSpacing: '1px' }} placeholder="e.g. A3F9B721CC04ABCD" value={form.machineId} onChange={set('machineId')} />
+          </div>
+
+          {/* Duration */}
           <div>
             <label style={styles.modalLabel}>License Duration</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               {(['custom', 'forever'] as const).map(opt => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setDurationType(opt)}
-                  style={{
-                    flex: 1, padding: '9px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                    background: durationType === opt ? (opt === 'forever' ? 'rgba(139,92,246,0.2)' : 'rgba(0,200,150,0.15)') : 'rgba(255,255,255,0.04)',
-                    border: durationType === opt ? (opt === 'forever' ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(0,200,150,0.4)') : '1px solid rgba(255,255,255,0.08)',
-                    color: durationType === opt ? (opt === 'forever' ? '#a78bfa' : '#00c896') : '#64748b',
-                    transition: 'all 0.2s',
-                  }}
-                >
+                <button key={opt} type="button" onClick={() => setDurationType(opt)} style={{
+                  flex: 1, padding: '9px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  background: durationType === opt ? (opt === 'forever' ? 'rgba(139,92,246,0.2)' : 'rgba(0,200,150,0.15)') : 'rgba(255,255,255,0.04)',
+                  border: durationType === opt ? (opt === 'forever' ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(0,200,150,0.4)') : '1px solid rgba(255,255,255,0.08)',
+                  color: durationType === opt ? (opt === 'forever' ? '#a78bfa' : '#00c896') : '#64748b',
+                }}>
                   {opt === 'forever' ? '♾️ Forever' : '📅 Custom Days'}
                 </button>
               ))}
             </div>
-
             {durationType === 'custom' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  style={{ ...styles.modalInput, flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#00c896' }}
-                  type="number"
-                  min="1"
-                  max="3650"
-                  placeholder="365"
-                  value={customDays}
-                  onChange={e => setCustomDays(e.target.value)}
-                />
-                <span style={{ color: '#64748b', fontSize: 14, whiteSpace: 'nowrap' }}>days</span>
-                <span style={{ color: '#475569', fontSize: 12, whiteSpace: 'nowrap' }}>
-                  {customDays && !isNaN(parseInt(customDays))
-                    ? `≈ ${(parseInt(customDays) / 30).toFixed(1)} months`
-                    : ''}
-                </span>
+                <input style={{ ...styles.modalInput, flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#00c896' }}
+                  type="number" min="1" max="3650" value={customDays} onChange={e => setCustomDays(e.target.value)} />
+                <span style={{ color: '#64748b', fontSize: 14 }}>days</span>
+                <span style={{ color: '#475569', fontSize: 12 }}>≈ {(parseInt(customDays || '0') / 30).toFixed(1)} months</span>
               </div>
             )}
-
             {durationType === 'forever' && (
               <div style={{ padding: '12px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, color: '#a78bfa', fontSize: 13, textAlign: 'center' }}>
                 ♾️ This license will never expire
@@ -354,10 +297,15 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
             <label style={styles.modalLabel}>Notes (optional)</label>
             <textarea style={{ ...styles.modalInput, height: 60, resize: 'none' }} placeholder="Internal notes..." value={form.notes} onChange={set('notes')} />
           </div>
+
+          <div style={{ padding: '10px 14px', background: 'rgba(0,200,150,0.06)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 10, fontSize: 12, color: '#94a3b8' }}>
+            ✅ After creating, the <strong style={{ color: '#00c896' }}>.plxlicense</strong> file will be automatically downloaded. Send it to your client.
+          </div>
+
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="button" style={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
             <button type="submit" style={{ ...styles.modalConfirmBtn, opacity: loading ? 0.6 : 1 }} disabled={loading}>
-              {loading ? 'Creating...' : 'Create License'}
+              {loading ? 'Creating...' : '⬇ Create & Download License'}
             </button>
           </div>
         </form>
@@ -366,7 +314,7 @@ const CreateLicenseModal: React.FC<{ adminKey: string; onClose: () => void; onCr
   );
 };
 
-// ── Edit User Modal ──────────────────────────────────────────────────────────────
+// ── Edit User Modal ───────────────────────────────────────────────────────────
 const EditUserModal: React.FC<{ adminKey: string; license: License; onClose: () => void; onSaved: (msg: string) => void }> = ({ adminKey, license, onClose, onSaved }) => {
   const [form, setForm] = useState({
     company_name: license.company_name || '',
@@ -376,57 +324,29 @@ const EditUserModal: React.FC<{ adminKey: string; license: License; onClose: () 
     durationType: 'custom' as 'custom' | 'forever',
   });
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState('');
 
   const handleSave = async () => {
-    setLoading(true); setErr('');
-    try {
-      const expiresAt = form.durationType === 'forever'
-        ? new Date('2099-12-31').toISOString()
-        : new Date(form.expires_at).toISOString();
-      await updateLicense(adminKey, license.id, {
-        company_name: form.company_name.trim(),
-        notes: form.notes.trim(),
-        expires_at: expiresAt,
-        is_active: form.is_active,
-      });
-      onSaved(`${license.username} updated successfully.`);
-    } catch (e: any) { setErr(e.message); }
-    finally { setLoading(false); }
+    setLoading(true);
+    const expiresAt = form.durationType === 'forever' ? new Date('2099-12-31').toISOString() : new Date(form.expires_at).toISOString();
+    await updateLicense(adminKey, license.id, { company_name: form.company_name, notes: form.notes, expires_at: expiresAt, is_active: form.is_active });
+    onSaved(`${license.username} updated successfully.`);
+    setLoading(false);
   };
 
   return (
     <div style={styles.modalBackdrop}>
-      <div style={{ ...styles.modal, width: 480 }}>
-        <h3 style={styles.modalTitle}>✏️ Edit User — <span style={{ color: '#00c896' }}>{license.username}</span></h3>
-        {err && <div style={styles.modalError}>{err}</div>}
-
+      <div style={{ ...styles.modal, width: 460 }}>
+        <h3 style={styles.modalTitle}>✏️ Edit — <span style={{ color: '#00c896' }}>{license.username}</span></h3>
         <label style={styles.modalLabel}>Company Name</label>
-        <input style={{ ...styles.modalInput, marginBottom: 14 }} value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Company name" />
-
-        <label style={styles.modalLabel}>License Duration</label>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <button
-            onClick={() => setForm(f => ({ ...f, durationType: 'custom' }))}
-            style={{ ...styles.actionBtn, flex: 1, padding: '9px', background: form.durationType === 'custom' ? 'rgba(0,200,150,0.15)' : 'rgba(255,255,255,0.04)', color: form.durationType === 'custom' ? '#00c896' : '#64748b', border: `1px solid ${form.durationType === 'custom' ? 'rgba(0,200,150,0.4)' : 'rgba(255,255,255,0.08)'}` }}
-          >📅 Custom Days</button>
-          <button
-            onClick={() => setForm(f => ({ ...f, durationType: 'forever' }))}
-            style={{ ...styles.actionBtn, flex: 1, padding: '9px', background: form.durationType === 'forever' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)', color: form.durationType === 'forever' ? '#a78bfa' : '#64748b', border: `1px solid ${form.durationType === 'forever' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}` }}
-          >♾️ Forever</button>
-        </div>
-        {form.durationType === 'custom' && (
-          <input type="date" style={{ ...styles.modalInput, marginBottom: 14 }} value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} />
-        )}
-
+        <input style={{ ...styles.modalInput, marginBottom: 14 }} value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} />
+        <label style={styles.modalLabel}>Expiry Date</label>
+        <input type="date" style={{ ...styles.modalInput, marginBottom: 14 }} value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} />
         <label style={styles.modalLabel}>Notes</label>
-        <textarea style={{ ...styles.modalInput, height: 70, resize: 'none', marginBottom: 16 }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Internal notes..." />
-
+        <textarea style={{ ...styles.modalInput, height: 70, resize: 'none', marginBottom: 16 }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         <label style={{ ...styles.modalLabel, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 20 }}>
           <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
           <span>Account Active</span>
         </label>
-
         <div style={{ display: 'flex', gap: 10 }}>
           <button style={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
           <button style={{ ...styles.modalConfirmBtn, opacity: loading ? 0.6 : 1 }} onClick={handleSave} disabled={loading}>
@@ -438,46 +358,9 @@ const EditUserModal: React.FC<{ adminKey: string; license: License; onClose: () 
   );
 };
 
-
-
-// ── Send Notification Modal ───────────────────────────────────────────────────
-const SendNotifModal: React.FC<{ adminKey: string; license: License; onClose: () => void; onSent: () => void }> = ({ adminKey, license, onClose, onSent }) => {
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSend = async () => {
-    if (!message.trim()) return;
-    setLoading(true);
-    await sendNotification(adminKey, license.username, message.trim());
-    setLoading(false);
-    onSent();
-  };
-
-  return (
-    <div style={styles.modalBackdrop}>
-      <div style={{ ...styles.modal, width: 460 }}>
-        <h3 style={styles.modalTitle}>Send Notification to <span style={{ color: '#00c896' }}>{license.username}</span></h3>
-        <textarea
-          style={{ ...styles.modalInput, height: 100, resize: 'none', marginTop: 12 }}
-          placeholder="Type your message here..."
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-        />
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button style={styles.modalCancelBtn} onClick={onClose}>Cancel</button>
-          <button style={{ ...styles.modalConfirmBtn, opacity: loading ? 0.6 : 1 }} onClick={handleSend} disabled={loading}>
-            {loading ? 'Sending...' : '📩 Send Message'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   container: { padding: '32px', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#94a3b8' },
-
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
   title: { margin: 0, fontSize: 26, fontWeight: 700, color: '#f8fafc' },
   subtitle: { margin: '4px 0 0', fontSize: 14, color: '#64748b' },
@@ -489,7 +372,7 @@ const styles: Record<string, React.CSSProperties> = {
   statCard: { flex: 1, padding: '20px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 4 },
   statValue: { fontSize: 28, fontWeight: 700 },
   statLabel: { fontSize: 12, color: '#64748b' },
-  tabs: { display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 0 },
+  tabs: { display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)' },
   tab: { padding: '10px 20px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, borderBottom: '2px solid transparent', marginBottom: -1 },
   tabActive: { color: '#00c896', borderBottom: '2px solid #00c896' },
   tableWrap: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' },
@@ -498,15 +381,13 @@ const styles: Record<string, React.CSSProperties> = {
   tr: { borderBottom: '1px solid rgba(255,255,255,0.04)' },
   td: { padding: '13px 16px', fontSize: 13 },
   badge: { display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 },
-  adminTag: { marginLeft: 8, fontSize: 10, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', padding: '2px 8px', borderRadius: 10, border: '1px solid rgba(139,92,246,0.3)' },
   actionBtn: { padding: '5px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, cursor: 'pointer', color: '#94a3b8', fontSize: 12 },
   deactivateBtn: { color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)' },
   activateBtn: { color: '#00c896', borderColor: 'rgba(0,200,150,0.3)' },
-  resetBtn: { color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' },
   deleteBtn: { color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' },
   loadingMsg: { padding: 40, textAlign: 'center', color: '#64748b' },
   modalBackdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { width: 400, padding: 32, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)' },
+  modal: { width: 400, padding: 32, background: '#0d1b2a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.6)', maxHeight: '90vh', overflowY: 'auto' },
   modalTitle: { margin: '0 0 20px', fontSize: 18, fontWeight: 600, color: '#f8fafc' },
   modalLabel: { display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 },
   modalInput: { width: '100%', padding: '11px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#f8fafc', fontSize: 13, boxSizing: 'border-box', outline: 'none' },

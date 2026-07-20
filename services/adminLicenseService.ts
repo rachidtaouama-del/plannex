@@ -1,26 +1,19 @@
 /**
  * adminLicenseService.ts
  * ──────────────────────────────────────────────────────────────────────────────
- * Admin operations via SECURITY DEFINER RPC functions.
- * Uses the safe ANON key — authentication is enforced server-side by the
- * activation_key of the admin account (passed on every request).
+ * Fully offline admin operations.
+ * Licenses are stored in localStorage and signed files are downloaded locally.
  */
 
-import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
-
-const SUPABASE_URL = 'https://hntqukjrmjpootxqddfi.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_SqyFH4KKAzbp8TBycHy2Hw_E0lLcf6t';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { generateLicenseFile, LicensePayload } from './licenseEngine';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface License {
   id: string;
   username: string;
   company_name: string;
-  activation_key: string;
-  expires_at: string;
+  machine_id: string;
+  expires_at: string;       // ISO string
   is_active: boolean;
   is_admin: boolean;
   grace_period_days: number;
@@ -29,104 +22,128 @@ export interface License {
   created_at: string;
 }
 
-/** Generate a unique activation key */
-function generateActivationKey(username: string): string {
-  const uid = crypto.randomUUID().split('-')[0].toUpperCase();
-  const prefix = username.toUpperCase().slice(0, 4).padEnd(4, 'X');
-  return `PLX-${prefix}-${uid}`;
+const LICENSES_KEY = 'plannex_admin_licenses';
+
+// ── Local storage helpers ──────────────────────────────────────────────────────
+
+function loadLicenses(): License[] {
+  try {
+    const raw = localStorage.getItem(LICENSES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
 }
 
-// ── All functions require the admin's activation_key for server-side auth ─────
+function saveLicenses(licenses: License[]): void {
+  try { localStorage.setItem(LICENSES_KEY, JSON.stringify(licenses)); } catch { }
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
 
 /** Fetch all licenses */
-export async function getAllLicenses(adminKey: string): Promise<License[]> {
-  const { data, error } = await supabase.rpc('admin_get_all_licenses', {
-    p_activation_key: adminKey,
-  });
-  if (error) throw new Error(error.message);
-  return (data as License[]) || [];
+export async function getAllLicenses(_adminKey: string): Promise<License[]> {
+  return loadLicenses().sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 }
 
-/** Create a new license */
+/** Create a new license AND download the .plxlicense file */
 export async function createLicense(
-  adminKey: string,
-  opts: { username: string; password: string; companyName: string; expiresAt: Date; notes?: string }
-): Promise<void> {
-  const passwordHash = await bcrypt.hash(opts.password, 10);
-  const newKey = generateActivationKey(opts.username);
+  _adminKey: string,
+  opts: { username: string; companyName: string; machineId: string; expiresAt: Date; notes?: string }
+): Promise<string> {
+  const all = loadLicenses();
 
-  const { error } = await supabase.rpc('admin_create_license', {
-    p_activation_key:     adminKey,
-    p_username:           opts.username,
-    p_password_hash:      passwordHash,
-    p_company_name:       opts.companyName,
-    p_expires_at:         opts.expiresAt.toISOString(),
-    p_new_activation_key: newKey,
-    p_notes:              opts.notes || '',
-  });
-  if (error) throw new Error(error.message);
+  const payload: LicensePayload = {
+    username: opts.username.toLowerCase().trim(),
+    companyName: opts.companyName,
+    machineId: opts.machineId.trim(),
+    expiresAt: opts.expiresAt.toISOString(),
+    issuedAt: new Date().toISOString(),
+    notes: opts.notes || '',
+    v: 1,
+  };
+
+  const licenseContent = await generateLicenseFile(payload);
+
+  const newLicense: License = {
+    id: generateId(),
+    username: payload.username,
+    company_name: opts.companyName,
+    machine_id: opts.machineId.trim(),
+    expires_at: opts.expiresAt.toISOString(),
+    is_active: true,
+    is_admin: false,
+    grace_period_days: 0,
+    notes: opts.notes || '',
+    last_login_at: null,
+    created_at: new Date().toISOString(),
+  };
+
+  saveLicenses([newLicense, ...all]);
+  return licenseContent;
 }
 
-/** Update a license (any subset of fields) */
+/** Update a license */
 export async function updateLicense(
-  adminKey: string,
+  _adminKey: string,
   id: string,
   updates: { is_active?: boolean; expires_at?: string; company_name?: string; notes?: string }
 ): Promise<void> {
-  const { error } = await supabase.rpc('admin_update_license', {
-    p_activation_key: adminKey,
-    p_target_id:      id,
-    p_is_active:      updates.is_active      ?? null,
-    p_expires_at:     updates.expires_at     ?? null,
-    p_company_name:   updates.company_name   ?? null,
-    p_notes:          updates.notes          ?? null,
-  });
-  if (error) throw new Error(error.message);
+  const all = loadLicenses();
+  const idx = all.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], ...updates };
+  saveLicenses(all);
 }
 
 /** Delete a license */
-export async function deleteLicense(adminKey: string, id: string): Promise<void> {
-  const { error } = await supabase.rpc('admin_delete_license', {
-    p_activation_key: adminKey,
-    p_target_id:      id,
-  });
-  if (error) throw new Error(error.message);
+export async function deleteLicense(_adminKey: string, id: string): Promise<void> {
+  saveLicenses(loadLicenses().filter(l => l.id !== id));
 }
 
-/** Reset a user's password */
-export async function resetPassword(adminKey: string, id: string, newPassword: string): Promise<void> {
-  const newHash = await bcrypt.hash(newPassword, 10);
-  const { error } = await supabase.rpc('admin_reset_password', {
-    p_activation_key: adminKey,
-    p_target_id:      id,
-    p_new_hash:       newHash,
-  });
-  if (error) throw new Error(error.message);
+/** Regenerate and re-download a license file for an existing license */
+export async function regenerateLicenseFile(license: License): Promise<string> {
+  const payload: LicensePayload = {
+    username: license.username,
+    companyName: license.company_name,
+    machineId: license.machine_id,
+    expiresAt: license.expires_at,
+    issuedAt: license.created_at,
+    notes: license.notes || '',
+    v: 1,
+  };
+  return generateLicenseFile(payload);
 }
 
-/** Send a push notification to a user */
-export async function sendNotification(
-  adminKey: string,
-  targetUsername: string,
-  message: string
-): Promise<void> {
-  const { error } = await supabase.rpc('admin_send_notification', {
-    p_activation_key:   adminKey,
-    p_target_username:  targetUsername,
-    p_message:          message,
-  });
-  if (error) throw new Error(error.message);
-}
+/** Stub */
+export async function resetPassword(_adminKey: string, _id: string, _newPassword: string): Promise<void> { }
 
-/** Fetch recent login logs */
+/** Stub */
+export async function sendNotification(_adminKey: string, _targetUsername: string, _message: string): Promise<void> { }
+
+/** Fetch recent login logs (stored locally) */
 export async function getLoginLogs(
-  adminKey: string,
+  _adminKey: string,
   limit = 50
 ): Promise<{ username: string; logged_in_at: string; machine_name: string }[]> {
-  const { data, error } = await supabase.rpc('admin_get_login_logs', {
-    p_activation_key: adminKey,
-    p_limit:          limit,
-  });
-  if (error) throw new Error(error.message);
-  return (data as any[]) || [];
+  try {
+    const raw = localStorage.getItem('plannex_login_logs');
+    const logs = raw ? JSON.parse(raw) : [];
+    return logs.slice(0, limit);
+  } catch { return []; }
 }
+
+/** Record a login event */
+export function recordLoginLog(username: string, machineId: string): void {
+  try {
+    const raw = localStorage.getItem('plannex_login_logs');
+    const logs = raw ? JSON.parse(raw) : [];
+    logs.unshift({ username, logged_in_at: new Date().toISOString(), machine_name: machineId });
+    localStorage.setItem('plannex_login_logs', JSON.stringify(logs.slice(0, 200)));
+  } catch { }
+}
+

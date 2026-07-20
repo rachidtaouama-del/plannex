@@ -5,9 +5,13 @@
  */
 
 const { app, BrowserWindow, shell, ipcMain, dialog, Menu } = require('electron');
+const os = require('os');
+const fs = require('fs');
+const crypto = require('crypto');
 
 const path = require('path');
 const config = require('./config');
+const { readProfile, writeProfile, deleteProfile } = require('./userStore');
 
 // ─── Inject API keys before renderer loads ────────────────────────────────────
 Object.entries(config).forEach(([key, value]) => {
@@ -83,6 +87,50 @@ ipcMain.handle('get-config', (event, key) => {
 // Quit the app from renderer (called when user clicks Exit on login screen)
 ipcMain.handle('quit-app', () => app.quit());
 
+// ── User Profile (AppData) ─────────────────────────────────────────────────────
+ipcMain.handle('profile-read',   () => readProfile());
+ipcMain.handle('profile-write',  (_, data) => writeProfile(data));
+ipcMain.handle('profile-delete', () => deleteProfile());
+
+// Generate a unique Machine ID from hardware info
+ipcMain.handle('get-machine-id', () => {
+  const cpus = os.cpus();
+  const raw = [
+    os.hostname(),
+    cpus.length > 0 ? cpus[0].model : 'unknown',
+    os.platform(),
+    os.arch(),
+  ].join('|');
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16).toUpperCase();
+});
+
+// Open a file dialog to load a .plxlicense file
+ipcMain.handle('load-license-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Load PlanneX License File',
+    filters: [{ name: 'PlanneX License', extensions: ['plxlicense'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  try {
+    return fs.readFileSync(result.filePaths[0], 'utf8').trim();
+  } catch { return null; }
+});
+
+// Save a generated license file to disk
+ipcMain.handle('save-license-file', async (event, { content, filename }) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save License File',
+    defaultPath: filename || 'license.plxlicense',
+    filters: [{ name: 'PlanneX License', extensions: ['plxlicense'] }],
+  });
+  if (result.canceled || !result.filePath) return false;
+  try {
+    fs.writeFileSync(result.filePath, content, 'utf8');
+    return true;
+  } catch { return false; }
+});
+
 // Manual update check triggered by the user clicking "Check for Updates" in the app
 ipcMain.handle('check-for-update', async () => {
   if (!mainWindow || isDev) {
@@ -96,6 +144,12 @@ ipcMain.handle('check-for-update', async () => {
   } catch (err) {
     mainWindow.webContents.send('update-status', { type: 'error', message: err?.message || 'Update check failed' });
   }
+});
+
+// Install update triggered by the user clicking the Ready button
+ipcMain.handle('install-update', () => {
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.quitAndInstall(false, true);
 });
 
 

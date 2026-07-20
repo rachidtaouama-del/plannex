@@ -25,7 +25,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
   const handleNext = async () => {
     setMarking(true);
-    await markNotificationRead(notification.id, username, activationKey);
+    await markNotificationRead();
     setMarking(false);
     if (isLast) onClose();
     else setCurrent(c => c + 1);
