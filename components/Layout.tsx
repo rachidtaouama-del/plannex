@@ -117,8 +117,8 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
     const [state, setState] = React.useState<UpdateState>('idle');
     const [percent, setPercent] = React.useState(0);
     const [version, setVersion] = React.useState('');
-    const [showAvailableModal, setShowAvailableModal] = React.useState(false);
-    const [showProgressOverlay, setShowProgressOverlay] = React.useState(false);
+    const [showAvailableModal, setShowAvailableModal] = React.useState(false); // Deprecated
+    const [showProgressOverlay, setShowProgressOverlay] = React.useState(false); // Deprecated
     const [hasReminder, setHasReminder] = React.useState(false);
     const [statusMsg, setStatusMsg] = React.useState('Initializing...');
     const isElectron = !!(window as any).electronAPI?.checkForUpdate;
@@ -130,22 +130,19 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
             else if (status.type === 'available') {
                 setState('available');
                 setVersion(status.version || '');
-                setShowAvailableModal(true);
             }
             else if (status.type === 'downloading') {
                 setState('downloading');
                 setPercent(status.percent || 0);
                 setStatusMsg(status.percent < 30 ? 'Downloading update...' : status.percent < 70 ? 'Transferring packages...' : status.percent < 95 ? 'Verifying integrity...' : 'Finalizing...');
-                setShowProgressOverlay(true);
             }
             else if (status.type === 'downloaded') {
                 setState('downloaded');
                 setVersion(status.version || '');
                 setStatusMsg('Update ready to install!');
-                setTimeout(() => setShowProgressOverlay(false), 800);
             }
             else if (status.type === 'not-available') { setState('up-to-date'); setTimeout(() => setState('idle'), 4000); }
-            else if (status.type === 'error') { setState('error'); setShowProgressOverlay(false); setTimeout(() => setState('idle'), 5000); }
+            else if (status.type === 'error') { setState('error'); setTimeout(() => setState('idle'), 5000); }
         });
         return cleanup;
     }, [isElectron]);
@@ -154,144 +151,23 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
 
     const handleCheckClick = () => {
         if (state === 'checking' || state === 'downloading') return;
-        if (state === 'downloaded') { setShowAvailableModal(true); return; }
+        if (state === 'downloaded') { 
+            (window as any).electronAPI.installUpdate?.(); 
+            return; 
+        }
         (window as any).electronAPI.checkForUpdate();
         setState('checking');
     };
 
-    const handleInstallNow = () => {
-        setShowAvailableModal(false);
-        setHasReminder(false);
-    };
-
-    const handleRemindLater = () => {
-        setShowAvailableModal(false);
-        setHasReminder(true);
-    };
-
-    const handleCancelDownload = () => {
-        setShowProgressOverlay(false);
-        setState('available');
-        setHasReminder(true);
-    };
-
-    const handleInstallReady = () => {
-        (window as any).electronAPI.installUpdate?.();
-    };
-
     const isPulse = state === 'available' || state === 'downloaded' || hasReminder;
-    const btnLabel = state === 'checking' ? 'Checking...' : state === 'downloaded' ? `v${version} Ready` : hasReminder ? `Update v${version}` : 'Updates';
+    let btnLabel = 'Updates';
+    if (state === 'checking') btnLabel = 'Checking...';
+    else if (state === 'downloading') btnLabel = `Downloading... ${Math.round(percent)}%`;
+    else if (state === 'downloaded') btnLabel = `v${version} Ready to Install`;
+    else if (hasReminder) btnLabel = `Update v${version}`;
 
     return (
         <>
-            {/* ─ Update available modal ─ */}
-            {showAvailableModal && createPortal(
-                <div style={{
-                    position: 'fixed', inset: 0, zIndex: 9000,
-                    background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #0d1117 0%, #161b22 100%)',
-                        border: '1px solid rgba(16,185,129,0.25)',
-                        borderRadius: 24, padding: '48px 40px', maxWidth: 480, width: '90%',
-                        boxShadow: '0 0 80px rgba(16,185,129,0.1), 0 40px 80px rgba(0,0,0,0.5)',
-                        textAlign: 'center', fontFamily: 'sans-serif',
-                        animation: 'updateModalIn 0.5s cubic-bezier(0.16,1,0.3,1) both',
-                    }}>
-                        {/* Icon */}
-                        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 28 }}>⚡</div>
-                        {/* Badge */}
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 20 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                            <span style={{ color: '#10b981', fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>New Release Available</span>
-                        </div>
-                        <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 8 }}>
-                            {state === 'downloaded' ? 'Ready to Install' : `PlanneX v${version}`}
-                        </h2>
-                        <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, marginBottom: 36 }}>
-                            {state === 'downloaded'
-                                ? 'The update has been downloaded. Restart PlanneX to apply the improvements.'
-                                : 'A new version of PlanneX is available with improvements and fixes. Install now to stay up to date.'}
-                        </p>
-                        {state === 'downloaded' ? (
-                            <button
-                                onClick={handleInstallReady}
-                                style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', marginBottom: 12, letterSpacing: '0.05em' }}
-                            >⚡ Restart &amp; Install Now</button>
-                        ) : (
-                            <button
-                                onClick={handleInstallNow}
-                                style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', marginBottom: 12, letterSpacing: '0.05em' }}
-                            >⬇ Install Now</button>
-                        )}
-                        <button
-                            onClick={handleRemindLater}
-                            style={{ width: '100%', padding: '12px 24px', borderRadius: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                        >Remind Me Later</button>
-                    </div>
-                </div>,
-                document.body
-            )}
-
-            {/* ─ Full-screen download progress overlay ─ */}
-            {showProgressOverlay && createPortal(
-                <div style={{
-                    position: 'fixed', inset: 0, zIndex: 9500,
-                    background: 'rgba(2,2,2,0.95)', backdropFilter: 'blur(20px)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'sans-serif',
-                }}>
-                    {/* Circular progress ring */}
-                    <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 40 }}>
-                        <svg width="160" height="160" style={{ transform: 'rotate(-90deg)' }}>
-                            <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                            <circle cx="80" cy="80" r="68" fill="none" stroke="url(#updateGrad)" strokeWidth="8"
-                                strokeDasharray={`${2 * Math.PI * 68}`}
-                                strokeDashoffset={`${2 * Math.PI * 68 * (1 - percent / 100)}`}
-                                strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-                            />
-                            <defs>
-                                <linearGradient id="updateGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#10b981" />
-                                    <stop offset="100%" stopColor="#3b82f6" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 36, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{state === 'downloaded' ? '✓' : `${Math.round(percent)}%`}</span>
-                            <span style={{ fontSize: 10, color: '#475569', fontWeight: 700, letterSpacing: '0.15em', marginTop: 4, textTransform: 'uppercase' }}>
-                                {state === 'downloaded' ? 'Complete' : 'Updating'}
-                            </span>
-                        </div>
-                    </div>
-
-                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8, letterSpacing: '-0.02em' }}>Installing Update</h2>
-                    <p style={{ fontSize: 14, color: '#64748b', marginBottom: 48, fontWeight: 500 }}>{statusMsg}</p>
-
-                    {/* Progress bar */}
-                    <div style={{ width: 360, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
-                        <div style={{ height: '100%', width: `${percent}%`, background: 'linear-gradient(90deg, #10b981, #3b82f6)', borderRadius: 4, transition: 'width 0.4s ease', boxShadow: '0 0 12px rgba(16,185,129,0.5)' }} />
-                    </div>
-                    <p style={{ fontSize: 11, color: '#334155', marginBottom: 48, fontWeight: 500 }}>{Math.round(percent)}% of 100% complete</p>
-
-                    {/* Animated dots */}
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 48 }}>
-                        {[0, 1, 2].map(i => (
-                            <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', opacity: 0.3, animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={handleCancelDownload}
-                        style={{ padding: '10px 24px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.05em' }}
-                    >Cancel Update</button>
-                    <p style={{ color: '#1e293b', fontSize: 10, marginTop: 16, fontWeight: 500 }}>Please do not close the application during this process</p>
-                </div>,
-                document.body
-            )}
-
             {/* ─ Header button ─ */}
             <button
                 onClick={handleCheckClick}

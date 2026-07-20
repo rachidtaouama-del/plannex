@@ -4,7 +4,7 @@
  * Author: Rachid Taouama
  */
 
-const { app, BrowserWindow, shell, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog, Menu, powerMonitor } = require('electron');
 const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -163,6 +163,20 @@ app.whenReady().then(() => {
     const { setupUpdater } = require('./updater');
     setupUpdater(mainWindow);
   }
+
+  // ── High-Security Session Management ──
+  // Clear user session if the PC goes to sleep or is locked
+  powerMonitor.on('suspend', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('power-event', 'suspend');
+    }
+  });
+
+  powerMonitor.on('lock-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('power-event', 'lock-screen');
+    }
+  });
 
   app.on('activate', () => {
     // macOS: re-create window when clicking dock icon

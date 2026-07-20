@@ -35,6 +35,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   profileRead:   ()     => ipcRenderer.invoke('profile-read'),
   profileWrite:  (data) => ipcRenderer.invoke('profile-write', data),
   profileDelete: ()     => ipcRenderer.invoke('profile-delete'),
+
+  // Power Events for security
+  onPowerEvent: (callback) => {
+    ipcRenderer.on('power-event', (_event, status) => callback(status));
+    return () => ipcRenderer.removeAllListeners('power-event');
+  },
 });
 
 

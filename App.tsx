@@ -1518,6 +1518,18 @@ const AppRoot: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if ((window as any).electronAPI?.onPowerEvent) {
+      const cleanup = (window as any).electronAPI.onPowerEvent((event: string) => {
+        if (event === 'suspend' || event === 'lock-screen') {
+          console.log(`Security: PC ${event}. Clearing session.`);
+          setLicenseSession(null);
+        }
+      });
+      return cleanup;
+    }
+  }, []);
+
   // 1. Not yet logged in
   if (!licenseSession) {
     return <LicenseLoginScreen onSuccess={handleLicenseLogin} />;
