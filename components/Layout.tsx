@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import type { Page, UserAccount } from '../types';
 import type { LicenseSession } from '../services/licenseService';
@@ -184,7 +185,7 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
     return (
         <>
             {/* ─ Update available modal ─ */}
-            {showAvailableModal && (
+            {showAvailableModal && createPortal(
                 <div style={{
                     position: 'fixed', inset: 0, zIndex: 9000,
                     background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)',
@@ -229,11 +230,12 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
                             style={{ width: '100%', padding: '12px 24px', borderRadius: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                         >Remind Me Later</button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ─ Full-screen download progress overlay ─ */}
-            {showProgressOverlay && (
+            {showProgressOverlay && createPortal(
                 <div style={{
                     position: 'fixed', inset: 0, zIndex: 9500,
                     background: 'rgba(2,2,2,0.95)', backdropFilter: 'blur(20px)',
@@ -286,7 +288,8 @@ const UpdateSystem: React.FC<{ onGoHome: () => void }> = ({ onGoHome }) => {
                         style={{ padding: '10px 24px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.05em' }}
                     >Cancel Update</button>
                     <p style={{ color: '#1e293b', fontSize: 10, marginTop: 16, fontWeight: 500 }}>Please do not close the application during this process</p>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ─ Header button ─ */}
