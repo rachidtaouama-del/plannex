@@ -10,6 +10,12 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavigateToUserManagement, onNavigateToProjectHub }) => {
     const [hoveredCard, setHoveredCard] = useState<string | null>(null);
     const [tick, setTick] = useState(0);
+    const [showWelcome, setShowWelcome] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowWelcome(false), 5500);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const id = setInterval(() => setTick(t => t + 1), 1000);
@@ -64,6 +70,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavi
 
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen bg-[#020202] overflow-hidden py-20 px-6 font-sans">
+            {/* ── Test Welcome Popup ── */}
+            {showWelcome && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" style={{ animation: 'fadeOut 0.5s ease-out 5s forwards' }}>
+                    <div className="bg-slate-900 border border-emerald-500/30 p-10 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.15)] flex flex-col items-center text-center" style={{ animation: 'fadeInUp 0.5s ease-out both' }}>
+                        <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                            <span className="text-4xl animate-bounce">🚀</span>
+                        </div>
+                        <h2 className="text-4xl font-black text-white tracking-tighter mb-3">Bienvenue à la <span className="text-emerald-400">Version 1.2.2!</span></h2>
+                        <p className="text-slate-300 font-medium text-lg">Mise à jour automatique effectuée avec succès.<br/>Test réussi !</p>
+                    </div>
+                </div>
+            )}
+
             {/* ── Animated grid ── */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.025)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
@@ -216,6 +235,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavi
                 @keyframes fadeInUp {
                     from { opacity: 0; transform: translateY(50px); }
                     to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeOut {
+                    from { opacity: 1; visibility: visible; }
+                    to { opacity: 0; visibility: hidden; }
                 }
             `}</style>
         </div>
