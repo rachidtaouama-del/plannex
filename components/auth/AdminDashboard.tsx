@@ -3,17 +3,32 @@ import React, { useState, useEffect } from 'react';
 
 interface AdminDashboardProps {
     currentUserRole?: string;
+    username?: string;
     onNavigateToUserManagement: () => void;
     onNavigateToProjectHub: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavigateToUserManagement, onNavigateToProjectHub }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, username, onNavigateToUserManagement, onNavigateToProjectHub }) => {
     const [hoveredCard, setHoveredCard] = useState<string | null>(null);
     const [tick, setTick] = useState(0);
     const [showWelcome, setShowWelcome] = useState(true);
+    const [typedName, setTypedName] = useState('');
+    const displayName = username || 'Operator';
+
+    // Typewriter effect for the username
+    useEffect(() => {
+        if (!showWelcome) return;
+        let i = 0;
+        const interval = setInterval(() => {
+            setTypedName(displayName.slice(0, i + 1));
+            i++;
+            if (i >= displayName.length) clearInterval(interval);
+        }, 80);
+        return () => clearInterval(interval);
+    }, [showWelcome, displayName]);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowWelcome(false), 5500);
+        const timer = setTimeout(() => setShowWelcome(false), 6000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -70,15 +85,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavi
 
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen bg-[#020202] overflow-hidden py-20 px-6 font-sans">
-            {/* ── Test Welcome Popup ── */}
+            {/* ── Personalized Welcome Popup ── */}
             {showWelcome && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" style={{ animation: 'fadeOut 0.5s ease-out 5s forwards' }}>
-                    <div className="bg-slate-900 border border-emerald-500/30 p-10 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.15)] flex flex-col items-center text-center" style={{ animation: 'fadeInUp 0.5s ease-out both' }}>
-                        <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                            <span className="text-4xl animate-bounce">🚀</span>
+                <div
+                    className="absolute inset-0 z-50 flex items-center justify-center"
+                    style={{ background: 'rgba(2,2,2,0.85)', backdropFilter: 'blur(12px)', animation: 'fadeOut 0.8s ease-out 5.2s forwards' }}
+                    onClick={() => setShowWelcome(false)}
+                >
+                    <div style={{ animation: 'fadeInScale 0.6s cubic-bezier(0.16,1,0.3,1) both', textAlign: 'center', maxWidth: 600, padding: '0 24px' }}>
+                        {/* Status badge */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 100, border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)', marginBottom: 32 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
+                            <span style={{ color: '#10b981', fontSize: 10, fontWeight: 800, letterSpacing: '0.25em', textTransform: 'uppercase' }}>Systems Online · All Modules Operational</span>
                         </div>
-                        <h2 className="text-4xl font-black text-white tracking-tighter mb-3">Bienvenue à la <span className="text-emerald-400">Version 1.2.2!</span></h2>
-                        <p className="text-slate-300 font-medium text-lg">Mise à jour automatique effectuée avec succès.<br/>Test réussi !</p>
+
+                        {/* Main greeting */}
+                        <div style={{ fontSize: 18, color: '#64748b', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>Welcome back,</div>
+                        <h1 style={{ fontSize: 72, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 24 }}>
+                            {typedName}<span style={{ color: '#10b981', animation: 'blink 0.8s step-end infinite' }}>_</span>
+                        </h1>
+
+                        {/* Tagline */}
+                        <p style={{ fontSize: 17, color: '#94a3b8', fontWeight: 500, lineHeight: 1.7, maxWidth: 480, margin: '0 auto 40px' }}>
+                            Your industrial command center is standing by.<br />
+                            <span style={{ color: '#cbd5e1' }}>Every machine. Every decision. Under your command.</span>
+                        </p>
+
+                        {/* Divider */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center', marginBottom: 40 }}>
+                            <div style={{ height: 1, width: 60, background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.4))' }} />
+                            <span style={{ color: '#475569', fontSize: 10, fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase' }}>PlanneX Industrial Platform</span>
+                            <div style={{ height: 1, width: 60, background: 'linear-gradient(90deg, rgba(16,185,129,0.4), transparent)' }} />
+                        </div>
+
+                        <p style={{ color: '#334155', fontSize: 11, fontWeight: 500 }}>Click anywhere to continue</p>
                     </div>
                 </div>
             )}
@@ -236,9 +276,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, onNavi
                     from { opacity: 0; transform: translateY(50px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes fadeInScale {
+                    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
                 @keyframes fadeOut {
                     from { opacity: 1; visibility: visible; }
-                    to { opacity: 0; visibility: hidden; }
+                    to { opacity: 0; visibility: hidden; pointer-events: none; }
+                }
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0; }
                 }
             `}</style>
         </div>

@@ -896,7 +896,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
           </div>
         ) : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'admin_dashboard':
-        return isAuthenticated ? <AdminDashboard currentUserRole={currentUser?.role} onNavigateToUserManagement={() => handleSetPage('user_management')} onNavigateToProjectHub={() => handleSetPage('project_hub')} /> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return isAuthenticated ? <AdminDashboard currentUserRole={currentUser?.role} username={(licenseSession as any)?.username || currentUser?.firstName || currentUser?.username} onNavigateToUserManagement={() => handleSetPage('user_management')} onNavigateToProjectHub={() => handleSetPage('project_hub')} /> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'project_hub':
         return isAuthenticated ? (
           <ProjectHub
