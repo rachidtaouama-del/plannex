@@ -32,10 +32,10 @@ win:
 
 # ─── NSIS Installer (Setup Wizard) ───────────────────────────────────────────
 nsis:
-  oneClick: false                          # Show install wizard (not silent)
+  oneClick: true                           # Silent install (required for seamless auto-updates)
   perMachine: false                        # Install per-user (no admin rights needed)
   allowElevation: true
-  allowToChangeInstallationDirectory: true # Let user choose install folder
+  allowToChangeInstallationDirectory: false # Must be false when oneClick is true
   createDesktopShortcut: true              # Add shortcut to Desktop
   createStartMenuShortcut: true            # Add to Start Menu
   shortcutName: Plannex

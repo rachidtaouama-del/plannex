@@ -63,17 +63,8 @@ function setupUpdater(mainWindow) {
     log.info(`Plannex: Update v${info.version} downloaded.`);
     send({ type: 'downloaded', version: info.version });
 
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Plannex Update Ready',
-      message: `Version ${info.version} is ready to install.`,
-      detail: 'The update has been downloaded. Restart Plannex to apply the latest improvements.',
-      buttons: ['Restart Now', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-    }).then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall(false, true);
-    });
+    // Note: We no longer show a native dialog box here because we have a custom
+    // React UI in the renderer that handles prompting the user to install.
   });
 
   autoUpdater.on('error', (err) => {

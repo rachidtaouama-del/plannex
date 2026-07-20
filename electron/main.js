@@ -149,7 +149,8 @@ ipcMain.handle('check-for-update', async () => {
 // Install update triggered by the user clicking the Ready button
 ipcMain.handle('install-update', () => {
   const { autoUpdater } = require('electron-updater');
-  autoUpdater.quitAndInstall(false, true);
+  // Arg 1: isSilent=true (don't show UI), Arg 2: isForceRunAfter=true (restart app)
+  autoUpdater.quitAndInstall(true, true);
 });
 
 
