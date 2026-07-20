@@ -28,7 +28,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
     }, [showWelcome, displayName]);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowWelcome(false), 6000);
+        const timer = setTimeout(() => setShowWelcome(false), 7500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -89,7 +89,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
             {showWelcome && (
                 <div
                     className="absolute inset-0 z-50 flex items-center justify-center"
-                    style={{ background: 'rgba(2,2,2,0.85)', backdropFilter: 'blur(12px)', animation: 'fadeOut 0.8s ease-out 5.2s forwards' }}
+                    style={{ background: 'rgba(2,2,2,0.85)', backdropFilter: 'blur(12px)', animation: 'fadeOut 0.8s ease-out 6.5s forwards' }}
                     onClick={() => setShowWelcome(false)}
                 >
                     <div style={{ animation: 'fadeInScale 0.6s cubic-bezier(0.16,1,0.3,1) both', textAlign: 'center', maxWidth: 600, padding: '0 24px' }}>
