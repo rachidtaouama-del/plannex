@@ -6,6 +6,56 @@ interface LicenseStatusBannerProps {
 }
 
 const LicenseStatusBanner: React.FC<LicenseStatusBannerProps> = ({ session }) => {
+  const [countdown, setCountdown] = React.useState('');
+
+  React.useEffect(() => {
+    if (session.isAdmin) return;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const expiresAt = new Date(session.expiresAt);
+      if (expiresAt <= now) {
+         setCountdown('Expired');
+         return;
+      }
+      
+      let d1 = now;
+      let d2 = expiresAt;
+
+      let months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+      let days = d2.getDate() - d1.getDate();
+      if (days < 0) {
+          months -= 1;
+          const prevMonth = new Date(d2.getFullYear(), d2.getMonth(), 0);
+          days += prevMonth.getDate();
+      }
+      
+      let hours = d2.getHours() - d1.getHours();
+      if (hours < 0) { days -= 1; hours += 24; }
+      
+      let minutes = d2.getMinutes() - d1.getMinutes();
+      if (minutes < 0) { hours -= 1; minutes += 60; }
+      
+      if (days < 0) {
+          months -= 1;
+          const prevMonth = new Date(d2.getFullYear(), d2.getMonth(), 0);
+          days += prevMonth.getDate();
+      }
+
+      const parts = [];
+      if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+      if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+      if (hours > 0) parts.push(`${hours} hr${hours > 1 ? 's' : ''}`);
+      parts.push(`${minutes} min`);
+      
+      setCountdown(parts.join(' '));
+    };
+
+    updateCountdown();
+    const intervalId = setInterval(updateCountdown, 60000);
+    return () => clearInterval(intervalId);
+  }, [session]);
+
   if (session.isAdmin) return null; // Admin never shows expiry banner
 
   const { daysRemaining, status } = getLicenseStatus(session);
@@ -15,12 +65,12 @@ const LicenseStatusBanner: React.FC<LicenseStatusBannerProps> = ({ session }) =>
     warning: {
       bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)',
       color: '#f59e0b', icon: '⚠️',
-      text: `License expires in ${daysRemaining} days`,
+      text: `License expires in ${countdown}`,
     },
     critical: {
       bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)',
       color: '#ef4444', icon: '🔴',
-      text: `License expires in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} — Renew now!`,
+      text: `License expires in ${countdown} — Renew now!`,
     },
     grace: {
       bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)',
