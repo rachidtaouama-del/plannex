@@ -101,7 +101,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
                         </svg>
                     </div>
                     <div>
-                        <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Welcome back</div>
+                        <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Welcome to PlanneX</div>
                         <div style={{ color: '#f8fafc', fontSize: 14, fontWeight: 700 }}>{username || 'Operator'}</div>
                     </div>
                     <button 
