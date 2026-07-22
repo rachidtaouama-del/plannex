@@ -70,8 +70,7 @@ export const deleteProjectFromDB = async (id: string): Promise<boolean> => {
     const filtered = all.filter(p => p.id !== id);
     if (filtered.length === all.length) return false;
     saveAll(filtered);
-    // Also remove session data for this project (clean both typo variations)
-    localStorage.removeItem(`planex_session_${id}`);
+    // Also remove session data for this project
     localStorage.removeItem(`plannex_session_${id}`);
     return true;
 };
@@ -79,10 +78,7 @@ export const deleteProjectFromDB = async (id: string): Promise<boolean> => {
 // ─── Auto-save session data ────────────────────────────────────────────────────
 export const saveSessionToDB = async (projectId: string, sessionData: any): Promise<void> => {
     try {
-        // We NO LONGER save a duplicate payload to 'plannex_session_...' here.
-        // App.tsx handles the authoritative localStorage cache ('planex_session_...').
-        // Saving a clone here was silently maxing out the 5MB browser quota.
-        
+        localStorage.setItem(`plannex_session_${projectId}`, JSON.stringify(sessionData));
         // Update hasSessionData flag on project
         await updateProjectInDB(projectId, {});
         const all = loadAll();
@@ -99,9 +95,12 @@ export const saveSessionToDB = async (projectId: string, sessionData: any): Prom
 
 // ─── Load session data for a project ──────────────────────────────────────────
 export const loadSessionFromDB = async (projectId: string): Promise<any | null> => {
-    // Return null so that App.tsx gracefully falls back to the authoritative 
-    // local cache ('planex_session_...'). The old mock cloud payload is retired.
-    return null;
+    try {
+        const raw = localStorage.getItem(`plannex_session_${projectId}`);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
 };
 
 // ─── Load all profiles (admin view — returns mock users) ──────────────────────
