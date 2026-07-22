@@ -24,7 +24,8 @@ import { markProjectHasData } from './components/ProjectHub';
 try {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith('planex_session_')) {
+    // Catch both 'planex_' and 'plannex_' misspellings
+    if (key && (key.startsWith('planex_session_') || key.startsWith('plannex_session_'))) {
       const raw = localStorage.getItem(key) || '';
       if (raw.includes('"tasks":[{') || raw.length > 500000) {
         localStorage.removeItem(key);
@@ -116,6 +117,7 @@ const loadProjectSession = (projectId: string) => {
     // app falls back to the cloud session (which has the correct data).
     if (payload.schedulingState?.tasks?.length > 0) {
       localStorage.removeItem(`planex_session_${projectId}`);
+      localStorage.removeItem(`plannex_session_${projectId}`);
       return null;
     }
 
