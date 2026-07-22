@@ -15,6 +15,7 @@ interface AICopilotPageProps {
     parameters: AppParameters;
     evaluationData: EvaluationData | null;
     schedulingState?: SchedulingPageState | null;
+    projectId: string | null;
     onBack: () => void;
 }
 
@@ -442,8 +443,18 @@ const renderMarkdown = (text: string): string => {
 
 
 // --- MAIN COMPONENT ---
-const AICopilotPage: React.FC<AICopilotPageProps> = ({ results, parameters, evaluationData, schedulingState, onBack }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+const AICopilotPage: React.FC<AICopilotPageProps> = ({ results, parameters, evaluationData, schedulingState, projectId, onBack }) => {
+    const [messages, setMessages] = useState<ChatMessage[]>(() => {
+        if (!projectId) return [];
+        try {
+            const saved = localStorage.getItem(`plannex_aichat_${projectId}`);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+            }
+        } catch (e) { console.warn('Failed to load chat history', e); }
+        return [];
+    });
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isContextReady, setIsContextReady] = useState(false);
@@ -463,22 +474,27 @@ const AICopilotPage: React.FC<AICopilotPageProps> = ({ results, parameters, eval
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsContextReady(true);
-            setMessages([{
-                id: 'welcome',
-                role: 'assistant',
-                content: `Bonjour ! 👋 Je suis **PlanneX Copilot IA**, votre assistant expert en planification d'arrêt industriel.
-
-J'ai analysé l'intégralité de votre projet :
-- **${results.kpis.totalTasks} tâches** planifiées
-- **${results.kpis.totalManHours.toFixed(0)} heures-homme** au total
-- **${Object.keys(results.peakResources).length} équipes** mobilisées
-
-Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risques, optimiser les ressources, identifier les goulots d'étranglement, ou fournir un résumé exécutif.`,
-                timestamp: new Date(),
-            }]);
+            setMessages(prev => {
+                if (prev.length > 0) return prev;
+                return [{
+                    id: 'welcome',
+                    role: 'assistant',
+                    content: `Bonjour ! 👋 Je suis **PlanneX Copilot IA**, votre assistant expert en planification d'arrêt industriel.\n\nJ'ai analysé l'intégralité de votre projet :\n- **${results.kpis.totalTasks} tâches** planifiées\n- **${results.kpis.totalManHours.toFixed(0)} heures-homme** au total\n- **${Object.keys(results.peakResources).length} équipes** mobilisées\n\nPosez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risques, optimiser les ressources, identifier les goulots d'étranglement, ou fournir un résumé exécutif.`,
+                    timestamp: new Date(),
+                }];
+            });
         }, 2000);
         return () => clearTimeout(timer);
     }, [results]);
+
+    // Save chat history to local storage
+    useEffect(() => {
+        if (projectId && messages.length > 0) {
+            try {
+                localStorage.setItem(`plannex_aichat_${projectId}`, JSON.stringify(messages));
+            } catch (e) { console.warn('Failed to save chat history', e); }
+        }
+    }, [projectId, messages]);
 
     // Auto-scroll
     useEffect(() => {

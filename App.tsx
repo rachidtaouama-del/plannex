@@ -90,6 +90,21 @@ const loadEvalData = (projectId: string): any | null => {
   } catch (e) { return null; }
 };
 
+const saveHotReviewState = (projectId: string, state: any) => {
+  if (!projectId || !state) return;
+  try {
+    localStorage.setItem(`plannex_hotreview_${projectId}`, JSON.stringify(state));
+  } catch (e) { console.warn('Could not save hotReviewState', e); }
+};
+
+const loadHotReviewState = (projectId: string): any | null => {
+  try {
+    const raw = localStorage.getItem(`plannex_hotreview_${projectId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+};
+
 const loadProjectSession = (projectId: string) => {
   try {
     const raw = localStorage.getItem(`planex_session_${projectId}`);
@@ -525,6 +540,13 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     }
   }, [schedulingResults, schedulingParams, evaluationData, schedulingState, activeProject]);
 
+  // Dedicated save hook for hotReviewState to avoid triggering massive DB syncs on every UI change
+  useEffect(() => {
+    if (activeProject && hotReviewState) {
+      saveHotReviewState(activeProject.id, hotReviewState);
+    }
+  }, [activeProject, hotReviewState]);
+
   // --- AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
@@ -891,6 +913,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
               parameters={schedulingParams}
               evaluationData={evaluationData}
               schedulingState={schedulingState}
+              projectId={activeProject?.id ?? null}
               onBack={() => { setPlannerSubPage('dashboard'); setActivePage('planner'); }}
             />
           </div>
@@ -976,6 +999,14 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                     });
                   }
                 }
+
+                const savedHotReviewState = loadHotReviewState(project.id);
+                if (savedHotReviewState) {
+                  setHotReviewState(savedHotReviewState);
+                } else {
+                  setHotReviewState(initialHotReviewState);
+                }
+
                 // Restore the extra DB records (SIMOPS, Cost Hub, Scaffolding, Handling, Permits)
                 // COMPATIBILITY FIX: Old saved projects only stored 6 fields in schedulingState (no tasks/pdrItems).
                 // If schedulingState.tasks is empty but we have scheduledTasks, reconstruct tasks from results.
