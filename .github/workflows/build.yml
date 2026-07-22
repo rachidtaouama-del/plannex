@@ -62,7 +62,7 @@ jobs:
       # ── Step 5: Build & publish the Electron .exe to GitHub Releases ─────────
       - name: Build and publish Electron app
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always
 
       # ── Step 6: Upload artifacts for manual download if needed ───────────────
