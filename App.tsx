@@ -1187,7 +1187,6 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                     mapTasks: [],
                   } as any);
                 }
-                setHotReviewState(initialHotReviewState);
                 setCustomCriticalPaths([]);
                 setIsScratchMode(project.mode === 'libre');
                 setIsColdStopFlow(true);
