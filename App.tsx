@@ -97,11 +97,9 @@ const loadProjectSession = (projectId: string) => {
     const payload = JSON.parse(raw);
 
     // CLEANUP: If the stored session has tasks inside schedulingState (old bloated format),
-    // delete the stale entry so a fresh lean save can be written. Return null so the
-    // app falls back to the cloud session (which has the correct data).
+    // we strip them in-memory to avoid issues, but WE DO NOT DELETE the session so data is preserved.
     if (payload.schedulingState?.tasks?.length > 0) {
-      localStorage.removeItem(`planex_session_${projectId}`);
-      return null;
+      payload.schedulingState.tasks = undefined;
     }
 
     // Rehydrate Date objects
@@ -109,7 +107,7 @@ const loadProjectSession = (projectId: string) => {
       ...payload.results,
       scheduleEndDate: payload.results.scheduleEndDate ? new Date(payload.results.scheduleEndDate) : new Date(),
       maxWorkDate: payload.results.maxWorkDate ? new Date(payload.results.maxWorkDate) : new Date(),
-      scheduledTasks: payload.results.scheduledTasks.map((t: any) => ({
+      scheduledTasks: (payload.results.scheduledTasks || []).map((t: any) => ({
         ...t,
         startTime: t.startTime ? new Date(t.startTime) : new Date(),
         endTime: t.endTime ? new Date(t.endTime) : new Date(),
@@ -922,7 +920,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                         ...cloudPayload.results,
                         scheduleEndDate: cloudPayload.results.scheduleEndDate ? new Date(cloudPayload.results.scheduleEndDate) : new Date(),
                         maxWorkDate: cloudPayload.results.maxWorkDate ? new Date(cloudPayload.results.maxWorkDate) : new Date(),
-                        scheduledTasks: cloudPayload.results.scheduledTasks.map((t: any) => ({
+                        scheduledTasks: (cloudPayload.results.scheduledTasks || []).map((t: any) => ({
                           ...t,
                           startTime: t.startTime ? new Date(t.startTime) : new Date(),
                           endTime: t.endTime ? new Date(t.endTime) : new Date(),
