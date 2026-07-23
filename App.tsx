@@ -559,6 +559,15 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  // Listen for navigation events from LicenseStatusBanner (which sits in AppRoot, outside App)
+  useEffect(() => {
+    const handleNavigate = (e: Event) => {
+      const page = (e as CustomEvent).detail?.page;
+      if (page) handleSetPage(page as Page);
+    };
+    window.addEventListener('plannex_navigate', handleNavigate);
+    return () => window.removeEventListener('plannex_navigate', handleNavigate);
+  }, []);
 
 
 
@@ -1515,6 +1524,8 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
         onBack={activePage === 'planner' ? handleBackToScheduling : undefined}
         licenseSession={licenseSession}
         onLicenseLogout={onLicenseLogout}
+        hasUnsavedChanges={hasUnsavedChanges}
+        onSaveProject={() => handleManualSave(false)}
       >
 
         <Suspense fallback={<PageLoader />}>
@@ -1571,7 +1582,7 @@ const AppRoot: React.FC = () => {
   // 3. Authenticated — render full app
   return (
     <>
-      <LicenseStatusBanner session={licenseSession} />
+      <LicenseStatusBanner session={licenseSession} setPage={(page) => window.dispatchEvent(new CustomEvent('plannex_navigate', { detail: { page } }))} />
       <App licenseSession={licenseSession} onLicenseLogout={() => {
         localStorage.removeItem('plannex_saved_username');
         setLicenseSession(null);

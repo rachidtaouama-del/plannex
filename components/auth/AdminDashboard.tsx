@@ -11,7 +11,12 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, username, onNavigateToUserManagement, onNavigateToProjectHub }) => {
     const [hoveredCard, setHoveredCard] = useState<string | null>(null);
     const [tick, setTick] = useState(0);
-    const [showNotification, setShowNotification] = useState(true);
+    // Show welcome notification only ONCE per session (not on every page visit)
+    const [showNotification, setShowNotification] = useState(() => {
+        if (sessionStorage.getItem('plannex_welcome_shown')) return false;
+        sessionStorage.setItem('plannex_welcome_shown', '1');
+        return true;
+    });
 
     useEffect(() => {
         const id = setInterval(() => setTick(t => t + 1), 1000);
@@ -19,9 +24,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUserRole, userna
     }, []);
 
     useEffect(() => {
+        if (!showNotification) return;
         const timer = setTimeout(() => setShowNotification(false), 7000);
         return () => clearTimeout(timer);
-    }, []);
+    }, [showNotification]);
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });

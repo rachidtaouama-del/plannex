@@ -3,9 +3,10 @@ import { LicenseSession, getLicenseStatus } from '../services/licenseService';
 
 interface LicenseStatusBannerProps {
   session: LicenseSession;
+  setPage?: (page: string) => void;
 }
 
-const LicenseStatusBanner: React.FC<LicenseStatusBannerProps> = ({ session }) => {
+const LicenseStatusBanner: React.FC<LicenseStatusBannerProps> = ({ session, setPage }) => {
   const [countdown, setCountdown] = React.useState('');
 
   React.useEffect(() => {
@@ -94,14 +95,19 @@ const LicenseStatusBanner: React.FC<LicenseStatusBannerProps> = ({ session }) =>
     }}>
       <span>{config.icon}</span>
       <span>{config.text}</span>
-      <a
-        href="mailto:rachid.taouama@gmail.com"
-        style={{ color: config.color, fontWeight: 700, marginLeft: 8, textDecoration: 'underline' }}
+      <button
+        onClick={() => setPage ? setPage('about') : window.open('mailto:rachid.taouama@gmail.com')}
+        style={{
+          background: 'none', border: 'none', padding: 0, margin: '0 0 0 8px',
+          color: config.color, fontWeight: 700, textDecoration: 'underline',
+          cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+        }}
       >
         Contact support →
-      </a>
+      </button>
     </div>
   );
 };
 
 export default LicenseStatusBanner;
+

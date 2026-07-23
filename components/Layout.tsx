@@ -17,6 +17,8 @@ interface LayoutProps {
     onBack?: () => void;
     licenseSession?: LicenseSession;
     onLicenseLogout?: () => void;
+    hasUnsavedChanges?: boolean;
+    onSaveProject?: () => void;
 }
 
 
@@ -219,8 +221,44 @@ const Header: React.FC<{
     onBack?: () => void;
     licenseSession?: LicenseSession;
     onLicenseLogout?: () => void;
-}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout }) => {
+    hasUnsavedChanges?: boolean;
+    onSaveProject?: () => void;
+}> = ({ currentPage, setPage, isAuthenticated, user, onLogout, onEnterApp, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout, hasUnsavedChanges, onSaveProject }) => {
+    // Quit confirmation modal state
+    const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+    // Save confirmation overlay
+    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+    const saveConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Listen for the save-success toast to show the branded overlay
+    useEffect(() => {
+        const handleToast = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail?.type === 'success' && detail?.message?.includes('sauvegardé')) {
+                setShowSaveConfirm(true);
+                if (saveConfirmTimerRef.current) clearTimeout(saveConfirmTimerRef.current);
+                saveConfirmTimerRef.current = setTimeout(() => setShowSaveConfirm(false), 3000);
+            }
+        };
+        window.addEventListener('toast', handleToast);
+        return () => {
+            window.removeEventListener('toast', handleToast);
+            if (saveConfirmTimerRef.current) clearTimeout(saveConfirmTimerRef.current);
+        };
+    }, []);
+
+    const handleQuitClick = () => {
+        if (hasUnsavedChanges) {
+            setShowQuitConfirm(true);
+        } else {
+            (window as any).electronAPI?.quitApp?.();
+        }
+    };
+
+    const handleSaveAndQuit = () => {
+        onSaveProject?.();
+        setTimeout(() => (window as any).electronAPI?.quitApp?.(), 600);
+    };
 
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
@@ -379,10 +417,10 @@ const Header: React.FC<{
                         </button>
                     )}
 
-                    {/* Quit — closes the application completely */}
+                    {/* Quit — opens confirmation modal */}
                     {licenseSession && (
                         <button
-                            onClick={() => (window as any).electronAPI?.quitApp?.()}
+                            onClick={handleQuitClick}
                             style={{
                                 padding: '8px 16px', marginLeft: 8,
                                 background: 'rgba(239,68,68,0.08)',
@@ -398,6 +436,103 @@ const Header: React.FC<{
                         >
                             <span>⏻</span> Quit
                         </button>
+                    )}
+
+                    {/* Quit Confirmation Modal */}
+                    {showQuitConfirm && createPortal(
+                        <div style={{
+                            position: 'fixed', inset: 0, zIndex: 99999,
+                            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                                borderRadius: 20, padding: '36px 40px', width: 420,
+                                boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)',
+                                textAlign: 'center', fontFamily: "'Inter','Segoe UI',sans-serif",
+                            }}>
+                                {/* Icon */}
+                                <div style={{
+                                    width: 64, height: 64, borderRadius: '50%',
+                                    background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 20px', fontSize: 28,
+                                }}>⏻</div>
+
+                                <div style={{ color: '#f8fafc', fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
+                                    Quitter PlanneX ?
+                                </div>
+                                {hasUnsavedChanges ? (
+                                    <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                                        ⚠️ Vous avez des modifications non sauvegardées.
+                                    </div>
+                                ) : null}
+                                <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 28 }}>
+                                    {hasUnsavedChanges
+                                        ? 'Souhaitez-vous sauvegarder avant de quitter ?'
+                                        : 'Êtes-vous sûr de vouloir quitter l'application ?'}
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {hasUnsavedChanges && (
+                                        <button onClick={handleSaveAndQuit} style={{
+                                            padding: '12px 20px', borderRadius: 12, border: 'none',
+                                            background: 'linear-gradient(135deg,#10b981,#059669)',
+                                            color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                            boxShadow: '0 4px 16px rgba(16,185,129,0.3)',
+                                        }}>💾 Sauvegarder et quitter</button>
+                                    )}
+                                    <button onClick={() => (window as any).electronAPI?.quitApp?.()} style={{
+                                        padding: '12px 20px', borderRadius: 12,
+                                        border: '1px solid rgba(239,68,68,0.4)',
+                                        background: 'rgba(239,68,68,0.1)',
+                                        color: '#f87171', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                    }}>{hasUnsavedChanges ? 'Quitter sans sauvegarder' : 'Quitter'}</button>
+                                    <button onClick={() => setShowQuitConfirm(false)} style={{
+                                        padding: '12px 20px', borderRadius: 12,
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        background: 'transparent',
+                                        color: '#64748b', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                    }}>Annuler</button>
+                                </div>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
+
+                    {/* Save Confirmation Overlay */}
+                    {showSaveConfirm && createPortal(
+                        <div style={{
+                            position: 'fixed', bottom: 32, right: 32, zIndex: 99998,
+                            background: 'linear-gradient(135deg, #0f2a1e 0%, #064e3b 100%)',
+                            border: '1px solid rgba(16,185,129,0.4)',
+                            borderRadius: 16, padding: '18px 24px',
+                            display: 'flex', alignItems: 'center', gap: 14,
+                            boxShadow: '0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.1)',
+                            animation: 'slideInUp 0.3s ease',
+                            fontFamily: "'Inter','Segoe UI',sans-serif",
+                            minWidth: 280,
+                        }}>
+                            <style>{`@keyframes slideInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }`}</style>
+                            <div style={{
+                                width: 40, height: 40, borderRadius: '50%',
+                                background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.4)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 20, flexShrink: 0,
+                            }}>✅</div>
+                            <div>
+                                <div style={{ color: '#34d399', fontSize: 13, fontWeight: 800, marginBottom: 2 }}>Sauvegarde réussie</div>
+                                <div style={{ color: '#6ee7b7', fontSize: 11 }}>
+                                    {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowSaveConfirm(false)}
+                                style={{ background:'none', border:'none', color:'#4b5563', cursor:'pointer', marginLeft:'auto', padding:4, fontSize:16 }}
+                            >✕</button>
+                        </div>,
+                        document.body
                     )}
 
 
@@ -590,12 +725,12 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
 };
 
 
-const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentPage, setPage, isColdStopFlow, isAuthenticated, user, onLogout, setIsVideoModalOpen, onBack, licenseSession, onLicenseLogout, hasUnsavedChanges, onSaveProject }) => {
     const isInfoPage = ['landing', 'what-is', 'about', 'contact', 'privacy', 'disclaimer', 'gdpr', 'copyright', 'pricing', 'voir-la-demo', 'ebook'].includes(currentPage);
 
     return (
         <div className="flex flex-col min-h-screen bg-black text-slate-200">
-            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} licenseSession={licenseSession} onLicenseLogout={onLicenseLogout} />
+            <Header currentPage={currentPage} setPage={setPage} isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} onEnterApp={() => setPage('project_selection')} setIsVideoModalOpen={setIsVideoModalOpen} onBack={onBack} licenseSession={licenseSession} onLicenseLogout={onLicenseLogout} hasUnsavedChanges={hasUnsavedChanges} onSaveProject={onSaveProject} />
 
             <main className={`flex-grow flex flex-col ${isInfoPage && currentPage !== 'landing' ? 'pt-24' : ''}`}>
                 {children}
