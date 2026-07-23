@@ -70,15 +70,18 @@ export const deleteProjectFromDB = async (id: string): Promise<boolean> => {
     const filtered = all.filter(p => p.id !== id);
     if (filtered.length === all.length) return false;
     saveAll(filtered);
-    // Also remove session data for this project
-    localStorage.removeItem(`plannex_session_${id}`);
+    localStorage.removeItem(`planex_session_${id}`);
+    localStorage.removeItem(`planex_draft_${id}`);
+    localStorage.removeItem(`plannex_evaldata_${id}`);
+    localStorage.removeItem(`plannex_session_${id}`); // clean up old bloated duplicate
     return true;
 };
 
 // ─── Auto-save session data ────────────────────────────────────────────────────
 export const saveSessionToDB = async (projectId: string, sessionData: any): Promise<void> => {
     try {
-        localStorage.setItem(`plannex_session_${projectId}`, JSON.stringify(sessionData));
+        // We no longer duplicate the massive session payload into a second 'plannex_session_' key.
+        // It's already saved by saveProjectSession in App.tsx under 'planex_session_'.
         // Update hasSessionData flag on project
         await updateProjectInDB(projectId, {});
         const all = loadAll();
@@ -95,12 +98,8 @@ export const saveSessionToDB = async (projectId: string, sessionData: any): Prom
 
 // ─── Load session data for a project ──────────────────────────────────────────
 export const loadSessionFromDB = async (projectId: string): Promise<any | null> => {
-    try {
-        const raw = localStorage.getItem(`plannex_session_${projectId}`);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
+    // Return null so App.tsx falls back to the correctly unified 'planex_session_' key.
+    return null;
 };
 
 // ─── Load all profiles (admin view — returns mock users) ──────────────────────

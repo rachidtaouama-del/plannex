@@ -466,18 +466,26 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
   // Active project from Project Hub
   const [activeProject, setActiveProject] = useState<import('./components/ProjectHub').ProjectData | null>(null);
 
-  // --- UNIFIED AUTO-SAVE HOOK ---
-  // Save to the DB and localStorage whenever project state (or evaluation data) changes.
-  useEffect(() => {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const handleSetEvaluationData = useCallback((val: React.SetStateAction<EvaluationData | null>) => {
+    setEvaluationData(val);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleSetSchedulingState = useCallback((val: React.SetStateAction<SchedulingPageState | null>) => {
+    setSchedulingState(val);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  // --- MANUAL SAVE ---
+  const handleManualSave = useCallback((suppressToast: boolean = false) => {
     if (!activeProject) return;
 
     if (schedulingResults && schedulingParams) {
       // 1. COMPLETELY PLANNED PROJECT
-      // Auto-save the full session including any updates to Evaluation Data
       saveProjectSession(activeProject.id, schedulingResults, schedulingParams, evaluationData, schedulingState);
 
-      // CRITICAL: Also save evaluationData to its own protected key so Hot Execution
-      // progress is NEVER lost when the main session is cleaned up due to size limits.
       if (evaluationData) {
         saveEvalData(activeProject.id, evaluationData);
       }
@@ -496,11 +504,6 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
         },
         evalData: evaluationData,
         schedulingState: schedulingState ? {
-          // Store only the top-level module arrays in the cloud.
-          // Per-task nested records (task.pdrItems, task.scaffoldingRecords, etc.) are intentionally
-          // excluded — they are duplicates of the top-level arrays and would bloat the Supabase payload.
-          // On restore, they are re-linked by OT number (see onEnterProject restore logic).
-          // shutdownParams and dailyDurationLimit ARE included so the Aperçu tab works after refresh.
           shutdownParams: schedulingState.shutdownParams,
           dailyDurationLimit: schedulingState.dailyDurationLimit,
           simopsRecords: schedulingState.simopsRecords || [],
@@ -516,12 +519,31 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       saveSessionToDB(activeProject.id, payload).catch(() => { });
     } else if (schedulingState) {
       // 2. DRAFT PROJECT
-      // Save intermediate draft state for unfinalized projects so Master Data Center edits persist.
       saveProjectDraft(activeProject.id, schedulingState);
       const sessionPayload = { schedulingState, savedAt: new Date().toISOString() };
       saveSessionToDB(activeProject.id, sessionPayload).catch(() => { });
     }
+    
+    setHasUnsavedChanges(false);
+    if (!suppressToast && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Projet sauvegardé avec succès !', type: 'success' } }));
+    }
   }, [schedulingResults, schedulingParams, evaluationData, schedulingState, activeProject]);
+
+  // Protect against closing with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+
+
 
   // --- AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -690,6 +712,9 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setIsColdStopFlow(true);
     setActivePage('planner');
     setPlannerSubPage('dashboard');
+    
+    // Auto-save ONCE when generation completes
+    setTimeout(() => handleManualSave(true), 500);
 
     // Save session per project so re-opening goes directly to the dashboard
     setActiveProject(prev => {
@@ -826,7 +851,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       case 'team':
         return <div className="px-4 sm:px-6 lg:px-8 py-8"><TeamScheduleView results={schedulingResults} parameters={schedulingParams} onBack={handleBackToDashboard} isColdStopFlow={isColdStopFlow} dailyDurationLimit={schedulingState?.dailyDurationLimit || 12} /></div>;
       case 'evaluation':
-        return <div className="px-4 sm:px-6 lg:px-8 py-8"><EvaluationView results={schedulingResults} parameters={schedulingParams} evaluationData={evaluationData} setEvaluationData={setEvaluationData} evaluationKpis={evaluationKpis} onBack={handleBackToDashboard} user={currentUser} /></div>;
+        return <div className="px-4 sm:px-6 lg:px-8 py-8"><EvaluationView results={schedulingResults} parameters={schedulingParams} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} evaluationKpis={evaluationKpis} onBack={handleBackToDashboard} user={currentUser} /></div>;
       case 'dashboard':
       default:
         return (
@@ -859,19 +884,22 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
             handleSetPage('admin_dashboard');
           }}
           onFinishedScheduling={handleFinishedScheduling}
-          onStateChange={setSchedulingState}
+          onStateChange={handleSetSchedulingState}
+          onSaveProject={() => handleManualSave(false)}
+          hasUnsavedChanges={hasUnsavedChanges}
           initialState={schedulingState}
           isScratchMode={isScratchMode}
           initialStep={schedulingStep}
           filters={schedulingFilters}
           setFilters={setSchedulingFilters}
           evaluationData={evaluationData}
+          setEvaluationData={handleSetEvaluationData}
           projectName={activeProject?.name}
         /> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'planner':
         return renderPlannerPage();
       case 'hot_execution_review':
-        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={setEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={() => { setPlannerSubPage('dashboard'); setActivePage('planner'); }} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={() => { setPlannerSubPage('dashboard'); setActivePage('planner'); }} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={() => handleManualSave(false)} hasUnsavedChanges={hasUnsavedChanges} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'what_if_scenario':
         return isAuthenticated && schedulingResults ? (
           <WhatIfScenarioPage

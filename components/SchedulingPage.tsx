@@ -39,6 +39,9 @@ interface SchedulingPageProps {
     onNavigateToPortal?: () => void;
     onStateChange?: (state: SchedulingPageState) => void;
     evaluationData?: EvaluationData | null;
+    setEvaluationData?: (val: React.SetStateAction<EvaluationData | null>) => void;
+    onSaveProject?: () => void;
+    hasUnsavedChanges?: boolean;
     projectName?: string;
 }
 
@@ -157,7 +160,9 @@ const SchedulingHeader: React.FC<{
     onNavigateToPortal?: () => void;
     progressPercent?: number;
     projectName?: string;
-}> = ({ activeStep, onNavigate, isResultsEnabled, onModifyParams, onStartScheduling, onBack, onNavigateToPortal, progressPercent = 0, projectName }) => {
+    onSaveProject?: () => void;
+    hasUnsavedChanges?: boolean;
+}> = ({ activeStep, onNavigate, isResultsEnabled, onModifyParams, onStartScheduling, onBack, onNavigateToPortal, progressPercent = 0, projectName, onSaveProject, hasUnsavedChanges }) => {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -180,6 +185,18 @@ const SchedulingHeader: React.FC<{
                 >
                     <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
                 </button>
+                
+                {hasUnsavedChanges && onSaveProject && (
+                    <button
+                        onClick={onSaveProject}
+                        className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 hover:text-cyan-300 font-black py-2.5 px-5 rounded-2xl flex items-center gap-2 transition-all"
+                    >
+                        <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span className="text-[10px] uppercase tracking-[0.2em] relative z-10">Sauvegarder</span>
+                    </button>
+                )}
+
                 <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2.5">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
@@ -1563,7 +1580,10 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
     setFilters,
     onNavigateToPortal,
     onStateChange,
+    onSaveProject,
+    hasUnsavedChanges,
     evaluationData,
+    setEvaluationData,
     projectName
 }) => {
     const [step, setStep] = useState<'setup' | 'dashboard' | 'scheduling' | 'readiness' | 'pdr' | 'cost' | 'health'>(() => {
@@ -3618,6 +3638,8 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                 }}
                 progressPercent={schedulingProgressValue}
                 onNavigateToPortal={onNavigateToPortal}
+                onSaveProject={onSaveProject}
+                hasUnsavedChanges={hasUnsavedChanges}
                 projectName={projectName}
             />
             {/* ... Modal Components ... */}

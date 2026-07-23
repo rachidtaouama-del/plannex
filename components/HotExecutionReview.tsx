@@ -45,6 +45,8 @@ interface HotExecutionReviewProps {
     isColdStopFlow: boolean;
     // FIX: Add missing 'evaluationKpis' property to the interface.
     evaluationKpis: EvaluationKpis;
+    onSaveProject?: () => void;
+    hasUnsavedChanges?: boolean;
 }
 
 const toDateTimeLocalModal = (date: Date): string => {
@@ -775,7 +777,7 @@ const TaskListModal: React.FC<{
 };
 
 
-const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parameters, evaluationData, setEvaluationData, hotReviewState, setHotReviewState, onBack, isColdStopFlow, evaluationKpis }) => {
+const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parameters, evaluationData, setEvaluationData, hotReviewState, setHotReviewState, onBack, isColdStopFlow, evaluationKpis, onSaveProject, hasUnsavedChanges }) => {
     const { startDate, endDate, dateFilteredTasks, selectedFamily, selectedEquipment, selectedDiscipline, selectedTeam, searchTerm, displayedStartDate, displayedEndDate, slippageAnalysis, sortConfig } = hotReviewState;
 
     const [evaluationHistory, setEvaluationHistory] = useState<EvaluationData[]>([]);
@@ -2502,8 +2504,10 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                         className="bg-transparent border-none focus:ring-0 text-xs font-black text-cyan-400 p-0 placeholder:text-slate-700 w-40" placeholder="Votre nom..." />
                                 </div>
                             </div>
-                            <button onClick={() => addToast('Progression enregistrée avec succès !', 'success')}
-                                className="relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 text-blue-400 hover:text-blue-300 font-black py-3 px-6 rounded-2xl flex items-center gap-3 transition-all">
+                            <button onClick={() => {
+                                if (onSaveProject) onSaveProject();
+                            }}
+                                className="relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 hover:text-cyan-300 font-black py-3 px-6 rounded-2xl flex items-center gap-3 transition-all">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                                 <span className="text-[10px] uppercase tracking-[0.2em] relative z-10">Sauvegarder</span>
                             </button>
