@@ -22,6 +22,9 @@ on:
       - 'v*'   # Triggers on tags like v1.0.0, v1.1.0, v2.0.0
 # Publishes to: https://github.com/rachidtaouama-del/plannex/releases
 
+permissions:
+  contents: write
+
 # Cancel any in-progress build when a new one starts
 concurrency:
   group: release-${{ github.ref }}
@@ -62,7 +65,7 @@ jobs:
       # ── Step 5: Build & publish the Electron .exe to GitHub Releases ─────────
       - name: Build and publish Electron app
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always
 
       # ── Step 6: Upload artifacts for manual download if needed ───────────────
