@@ -18,23 +18,10 @@ import { LicenseSession, fetchNotifications, logLogin, getLicenseStatus } from '
 import { parseSchedulingFile, calculateSchedule } from './services/schedulingService';
 import { markProjectHasData } from './components/ProjectHub';
 
-// ─── Global LocalStorage Cleanup ──────────────────────────────────────────────
-// Free up browser quota by deleting any old bloated planex_session entries 
-// that still contain raw tasks arrays (which use ~1MB+ each).
-try {
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('planex_session_')) {
-      const raw = localStorage.getItem(key) || '';
-      if (raw.includes('"tasks":[{') || raw.length > 500000) {
-        localStorage.removeItem(key);
-        i--; // Adjust index after removal
-      }
-    }
-  }
-} catch (e) { console.warn('Global storage cleanup failed:', e); }
-
 // ─── Per-project session save/restore ────────────────────────────────────────
+// NOTE: The startup cleanup has been REMOVED. It was incorrectly deleting valid
+// saves that were larger than 500KB. Session saves are now managed exclusively
+// by the manual save button.
 
 const saveProjectSession = (projectId: string, results: any, params: any, evalData: any, schedulingState?: any) => {
   try {
@@ -658,12 +645,19 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setSchedulingParams(params);
     setSchedulingState(state);
 
+    // Compute the final evalData synchronously so we can save it immediately
+    // (we cannot rely on state from setEvaluationData which is async)
+    let finalEvalData: EvaluationData | null = null;
+
     setEvaluationData(prev => {
       // Use evaluationData from the scheduling state if it exists (e.g. from an imported file), otherwise use current prev
       const sourceData = state.evaluationData || prev;
 
       const initialEvalData = initializeEvaluationData(results, params, isColdStopFlow);
-      if (!sourceData) return initialEvalData;
+      if (!sourceData) {
+        finalEvalData = initialEvalData;
+        return initialEvalData;
+      }
 
       // Merge tasks from source
       Object.keys(initialEvalData.tasks).forEach(key => {
@@ -704,6 +698,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       initialEvalData.actualShutdownStart = sourceData.actualShutdownStart || initialEvalData.actualShutdownStart;
       initialEvalData.actualShutdownEnd = sourceData.actualShutdownEnd || initialEvalData.actualShutdownEnd;
 
+      finalEvalData = initialEvalData;
       return initialEvalData;
     });
 
@@ -712,16 +707,18 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setIsColdStopFlow(true);
     setActivePage('planner');
     setPlannerSubPage('dashboard');
-    
-    // Auto-save ONCE when generation completes
-    setTimeout(() => handleManualSave(true), 500);
 
-    // Save session per project so re-opening goes directly to the dashboard
+    // Save session per project so re-opening goes directly to the dashboard.
+    // We use the synchronously computed finalEvalData (not the async state) to
+    // guarantee the save includes the real evaluation data.
     setActiveProject(prev => {
       if (prev) {
-        saveProjectSession(prev.id, results, params, null, state);
+        // Direct localStorage save with the final evalData
+        saveProjectSession(prev.id, results, params, finalEvalData, state);
+        if (finalEvalData) saveEvalData(prev.id, finalEvalData);
         markProjectHasData(prev.id, String(currentUser?.id || ''));
-        // Cloud-save full session (including the extra DB records)
+
+        // Cloud-save full session
         const sessionPayload = {
           params, results: {
             ...results,
@@ -733,10 +730,8 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
             scheduleEndDate: results.scheduleEndDate instanceof Date ? results.scheduleEndDate.toISOString() : results.scheduleEndDate,
             maxWorkDate: results.maxWorkDate instanceof Date ? results.maxWorkDate.toISOString() : results.maxWorkDate,
           },
+          evalData: finalEvalData,
           schedulingState: {
-            // Store only the top-level module arrays — tasks are too large for Supabase
-            // and will be re-linked from these on session restore.
-            // shutdownParams and dailyDurationLimit ARE included so Aperçu tab works after refresh.
             shutdownParams: state.shutdownParams,
             dailyDurationLimit: state.dailyDurationLimit,
             simopsRecords: state.simopsRecords || [],
