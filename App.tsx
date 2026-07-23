@@ -18,29 +18,51 @@ import { LicenseSession, fetchNotifications, logLogin, getLicenseStatus } from '
 import { parseSchedulingFile, calculateSchedule } from './services/schedulingService';
 import { markProjectHasData } from './components/ProjectHub';
 
-// ─── Per-project session save/restore ────────────────────────────────────────
-// NOTE: The startup cleanup has been REMOVED. It was incorrectly deleting valid
-// saves that were larger than 500KB. Session saves are now managed exclusively
-// by the manual save button.
+// ─── SPLIT localStorage save/restore ─────────────────────────────────────────────────────────
+//
+// Root cause of data loss: saving ALL data (tasks + evalData + params) in ONE
+// localStorage key. When user edits Hot Evaluation, evalData grows by ~500KB.
+// Combined payload exceeds 5MB. Chrome DELETES the existing key before failing
+// to write the new larger one. Silent QuotaExceededError. Data gone.
+//
+// Fix: 3 independent, small keys. Each write is tiny and safe:
+//   planex_tasks_${id}      ← scheduledTasks array (large, written once at generation)
+//   planex_session_${id}    ← lightweight metadata: params + kpis + schedulingState
+//   plannex_evaldata_${id}  ← Hot Evaluation progress (written only on manual save)
+//
+// If any write fails, the OTHER keys are untouched.
 
-const saveProjectSession = (projectId: string, results: any, params: any, evalData: any, schedulingState?: any) => {
+/** Save the heavy scheduledTasks array to its own dedicated key. Returns false if quota exceeded. */
+const saveTasksData = (projectId: string, tasks: any[]): boolean => {
   try {
+    const serialized = tasks.map((t: any) => ({
+      ...t,
+      startTime: t.startTime instanceof Date ? t.startTime.toISOString() : t.startTime,
+      endTime: t.endTime instanceof Date ? t.endTime.toISOString() : t.endTime,
+    }));
+    localStorage.setItem(`planex_tasks_${projectId}`, JSON.stringify(serialized));
+    return true;
+  } catch (e) {
+    console.error('[PlanneX] SAVE FAILED (tasks):', e);
+    return false;
+  }
+};
+
+/** Save lightweight metadata (params + schedulingState). No tasks, no evalData. Returns false if failed. */
+const saveProjectSession = (projectId: string, results: any, params: any, schedulingState?: any): boolean => {
+  try {
+    // Destructure to exclude scheduledTasks (they live in planex_tasks_)
+    const { scheduledTasks: _omit, ...resultsWithoutTasks } = results || {};
     const payload = {
       params,
       results: {
-        ...results,
-        scheduledTasks: results.scheduledTasks.map((t: any) => ({
-          ...t,
-          startTime: t.startTime instanceof Date ? t.startTime.toISOString() : t.startTime,
-          endTime: t.endTime instanceof Date ? t.endTime.toISOString() : t.endTime,
-        })),
+        ...resultsWithoutTasks,
         scheduleEndDate: results.scheduleEndDate instanceof Date ? results.scheduleEndDate.toISOString() : results.scheduleEndDate,
         maxWorkDate: results.maxWorkDate instanceof Date ? results.maxWorkDate.toISOString() : results.maxWorkDate,
       },
-      evalData,
-      // NOTE: tasks are intentionally excluded from localStorage to prevent QuotaExceededError.
-      // They are always reconstructed from results.scheduledTasks when loading the session.
       schedulingState: schedulingState ? {
+        shutdownParams: schedulingState.shutdownParams,
+        dailyDurationLimit: schedulingState.dailyDurationLimit,
         simopsRecords: schedulingState.simopsRecords || [],
         costHubEntries: schedulingState.costHubEntries || [],
         scaffoldingRecords: schedulingState.scaffoldingRecords || [],
@@ -50,22 +72,30 @@ const saveProjectSession = (projectId: string, results: any, params: any, evalDa
         pdrItems: schedulingState.pdrItems || [],
       } : undefined,
       savedAt: new Date().toISOString(),
+      v: 2, // version marker — split format
     };
     localStorage.setItem(`planex_session_${projectId}`, JSON.stringify(payload));
-  } catch (e) { console.warn('Could not save project session', e); }
+    return true;
+  } catch (e) {
+    console.error('[PlanneX] SAVE FAILED (session meta):', e);
+    return false;
+  }
 };
 
-// ─── Dedicated EvalData save/load ─────────────────────────────────────────────
-// Hot Execution progress is saved to its OWN key so it is NEVER wiped by the
-// session cleanup routine that deletes large or task-containing payloads.
-const saveEvalData = (projectId: string, evalData: any) => {
-  if (!projectId || !evalData) return;
+// ─── EvalData save/load ─────────────────────────────────────────────────────────
+/** Save Hot Evaluation progress to its own protected key. Returns false if failed. */
+const saveEvalData = (projectId: string, evalData: any): boolean => {
+  if (!projectId || !evalData) return true;
   try {
     localStorage.setItem(`plannex_evaldata_${projectId}`, JSON.stringify({
       evalData,
       savedAt: new Date().toISOString(),
     }));
-  } catch (e) { console.warn('Could not save evalData', e); }
+    return true;
+  } catch (e) {
+    console.error('[PlanneX] SAVE FAILED (evalData):', e);
+    return false;
+  }
 };
 
 const loadEvalData = (projectId: string): any | null => {
@@ -77,38 +107,50 @@ const loadEvalData = (projectId: string): any | null => {
   } catch (e) { return null; }
 };
 
+// ─── Session load (reassembles from all 3 keys) ─────────────────────────────────────────
+/** Load the full session by combining the 3 split keys. Handles both old (v1) and new (v2) formats. */
 const loadProjectSession = (projectId: string) => {
   try {
-    const raw = localStorage.getItem(`planex_session_${projectId}`);
-    if (!raw) return null;
-    const payload = JSON.parse(raw);
+    const metaRaw = localStorage.getItem(`planex_session_${projectId}`);
+    if (!metaRaw) return null;
+    const meta = JSON.parse(metaRaw);
+    if (!meta.params || !meta.results) return null;
 
-    // CLEANUP: If the stored session has tasks inside schedulingState (old bloated format),
-    // we strip them in-memory to avoid issues, but WE DO NOT DELETE the session so data is preserved.
-    if (payload.schedulingState?.tasks?.length > 0) {
-      payload.schedulingState.tasks = undefined;
+    // Load scheduledTasks: from dedicated key (v2) or embedded in meta (v1 legacy)
+    let rawTasks: any[] = [];
+    const tasksRaw = localStorage.getItem(`planex_tasks_${projectId}`);
+    if (tasksRaw) {
+      rawTasks = JSON.parse(tasksRaw);
+    } else if (Array.isArray(meta.results.scheduledTasks)) {
+      // v1 legacy format: tasks were embedded in meta
+      rawTasks = meta.results.scheduledTasks;
     }
+
+    // A session is only valid if it has tasks
+    if (rawTasks.length === 0) return null;
+
+    // EvalData: always prefer the dedicated key (most up-to-date)
+    const evalData = loadEvalData(projectId) || meta.evalData || null;
 
     // Rehydrate Date objects
     const results = {
-      ...payload.results,
-      scheduleEndDate: payload.results.scheduleEndDate ? new Date(payload.results.scheduleEndDate) : new Date(),
-      maxWorkDate: payload.results.maxWorkDate ? new Date(payload.results.maxWorkDate) : new Date(),
-      scheduledTasks: (payload.results.scheduledTasks || []).map((t: any) => ({
+      ...meta.results,
+      scheduleEndDate: meta.results.scheduleEndDate ? new Date(meta.results.scheduleEndDate) : new Date(),
+      maxWorkDate: meta.results.maxWorkDate ? new Date(meta.results.maxWorkDate) : new Date(),
+      scheduledTasks: rawTasks.map((t: any) => ({
         ...t,
         startTime: t.startTime ? new Date(t.startTime) : new Date(),
         endTime: t.endTime ? new Date(t.endTime) : new Date(),
       })),
     };
-    const rawSchedulingState = payload.schedulingState || null;
-    const schedulingState = rawSchedulingState ? rehydrateDraftDates(rawSchedulingState) : null;
 
-    // Prefer the dedicated evalData key (protected from cleanup) over the session payload
-    const dedicatedEvalData = loadEvalData(projectId);
-    const evalData = dedicatedEvalData || payload.evalData || null;
+    const schedulingState = meta.schedulingState ? rehydrateDraftDates(meta.schedulingState) : null;
 
-    return { results, params: payload.params, evalData, schedulingState };
-  } catch (e) { console.warn('Could not load project session', e); return null; }
+    return { results, params: meta.params, evalData, schedulingState };
+  } catch (e) {
+    console.warn('[PlanneX] Could not load project session:', e);
+    return null;
+  }
 };
 
 const saveProjectDraft = (projectId: string, state: any) => {
@@ -465,56 +507,44 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setHasUnsavedChanges(true);
   }, []);
 
-  // --- MANUAL SAVE ---
+  // --- MANUAL SAVE (split-key strategy) ---
+  // Each piece is saved to its OWN independent localStorage key.
+  // This prevents QuotaExceededError from silently deleting ALL data.
   const handleManualSave = useCallback((suppressToast: boolean = false) => {
     if (!activeProject) return;
 
     if (schedulingResults && schedulingParams) {
-      // 1. COMPLETELY PLANNED PROJECT
-      saveProjectSession(activeProject.id, schedulingResults, schedulingParams, evaluationData, schedulingState);
+      // 1. COMPLETELY PLANNED PROJECT — 3 independent writes
+      const tasksSaved = saveTasksData(activeProject.id, schedulingResults.scheduledTasks);
+      const metaSaved = saveProjectSession(activeProject.id, schedulingResults, schedulingParams, schedulingState);
+      const evalSaved = saveEvalData(activeProject.id, evaluationData);
 
-      if (evaluationData) {
-        saveEvalData(activeProject.id, evaluationData);
+      // Also update hasSessionData flag in project metadata
+      saveSessionToDB(activeProject.id, { hasSessionData: true, savedAt: new Date().toISOString() }).catch(() => {});
+
+      if (!suppressToast && typeof window !== 'undefined') {
+        if (!tasksSaved || !metaSaved || !evalSaved) {
+          // At least one write failed — tell the user HONESTLY
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: {
+              message: '⚠️ Sauvegarde incomplète ! Espace disque insuffisant. Supprimez d\'autres projets pour libérer de la place.',
+              type: 'error'
+            }
+          }));
+        } else {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Projet sauvegardé avec succès !', type: 'success' } }));
+        }
       }
-
-      const payload = {
-        params: schedulingParams,
-        results: {
-          ...schedulingResults,
-          scheduledTasks: schedulingResults.scheduledTasks.map((t: any) => ({
-            ...t,
-            startTime: t.startTime instanceof Date ? t.startTime.toISOString() : t.startTime,
-            endTime: t.endTime instanceof Date ? t.endTime.toISOString() : t.endTime,
-          })),
-          scheduleEndDate: schedulingResults.scheduleEndDate instanceof Date ? schedulingResults.scheduleEndDate.toISOString() : schedulingResults.scheduleEndDate,
-          maxWorkDate: schedulingResults.maxWorkDate instanceof Date ? schedulingResults.maxWorkDate.toISOString() : schedulingResults.maxWorkDate,
-        },
-        evalData: evaluationData,
-        schedulingState: schedulingState ? {
-          shutdownParams: schedulingState.shutdownParams,
-          dailyDurationLimit: schedulingState.dailyDurationLimit,
-          simopsRecords: schedulingState.simopsRecords || [],
-          costHubEntries: schedulingState.costHubEntries || [],
-          scaffoldingRecords: schedulingState.scaffoldingRecords || [],
-          handlingRecords: schedulingState.handlingRecords || [],
-          permitRecords: schedulingState.permitRecords || [],
-          mapTasks: schedulingState.mapTasks || [],
-          pdrItems: schedulingState.pdrItems || [],
-        } : undefined,
-        savedAt: new Date().toISOString(),
-      };
-      saveSessionToDB(activeProject.id, payload).catch(() => { });
     } else if (schedulingState) {
       // 2. DRAFT PROJECT
       saveProjectDraft(activeProject.id, schedulingState);
-      const sessionPayload = { schedulingState, savedAt: new Date().toISOString() };
-      saveSessionToDB(activeProject.id, sessionPayload).catch(() => { });
+      saveSessionToDB(activeProject.id, { schedulingState, savedAt: new Date().toISOString() }).catch(() => {});
+      if (!suppressToast) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Brouillon sauvegardé !', type: 'success' } }));
+      }
     }
-    
+
     setHasUnsavedChanges(false);
-    if (!suppressToast && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Projet sauvegardé avec succès !', type: 'success' } }));
-    }
   }, [schedulingResults, schedulingParams, evaluationData, schedulingState, activeProject]);
 
   // Protect against closing with unsaved changes
@@ -709,43 +739,19 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setPlannerSubPage('dashboard');
 
     // Save session per project so re-opening goes directly to the dashboard.
-    // We use the synchronously computed finalEvalData (not the async state) to
-    // guarantee the save includes the real evaluation data.
+    // Split into 3 independent writes — immune to QuotaExceededError.
     setActiveProject(prev => {
       if (prev) {
-        // Direct localStorage save with the final evalData
-        saveProjectSession(prev.id, results, params, finalEvalData, state);
+        // Save tasks (large, own key)
+        saveTasksData(prev.id, results.scheduledTasks);
+        // Save metadata (lightweight, own key)
+        saveProjectSession(prev.id, results, params, state);
+        // Save evalData (medium, own key)
         if (finalEvalData) saveEvalData(prev.id, finalEvalData);
         markProjectHasData(prev.id, String(currentUser?.id || ''));
 
-        // Cloud-save full session
-        const sessionPayload = {
-          params, results: {
-            ...results,
-            scheduledTasks: results.scheduledTasks.map((t: any) => ({
-              ...t,
-              startTime: t.startTime instanceof Date ? t.startTime.toISOString() : t.startTime,
-              endTime: t.endTime instanceof Date ? t.endTime.toISOString() : t.endTime,
-            })),
-            scheduleEndDate: results.scheduleEndDate instanceof Date ? results.scheduleEndDate.toISOString() : results.scheduleEndDate,
-            maxWorkDate: results.maxWorkDate instanceof Date ? results.maxWorkDate.toISOString() : results.maxWorkDate,
-          },
-          evalData: finalEvalData,
-          schedulingState: {
-            shutdownParams: state.shutdownParams,
-            dailyDurationLimit: state.dailyDurationLimit,
-            simopsRecords: state.simopsRecords || [],
-            costHubEntries: state.costHubEntries || [],
-            scaffoldingRecords: state.scaffoldingRecords || [],
-            handlingRecords: state.handlingRecords || [],
-            permitRecords: state.permitRecords || [],
-            mapTasks: state.mapTasks || [],
-            pdrItems: state.pdrItems || [],
-          },
-          hasSessionData: true,
-          savedAt: new Date().toISOString(),
-        };
-        saveSessionToDB(prev.id, sessionPayload).catch(() => { });
+        // Update cloud flag
+        saveSessionToDB(prev.id, { hasSessionData: true, savedAt: new Date().toISOString() }).catch(() => {});
       }
       return prev;
     });
