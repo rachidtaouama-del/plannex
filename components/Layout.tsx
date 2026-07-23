@@ -471,7 +471,7 @@ const Header: React.FC<{
                                 <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 28 }}>
                                     {hasUnsavedChanges
                                         ? 'Souhaitez-vous sauvegarder avant de quitter ?'
-                                        : 'Êtes-vous sûr de vouloir quitter l'application ?'}
+                                        : "Êtes-vous sûr de vouloir quitter l'application ?"}
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
