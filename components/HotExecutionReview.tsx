@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
 // FIX: Import EvaluationKpis type.
 import type { CalculationResults, AppParameters, ScheduledTask, HotReviewState, SupplementaryTask, TeamDetail, SortableHotReviewKeys, EvaluationData, EvaluatedTaskData, SlippageDetails, TaskStatus, EventDetail, EvaluationKpis, OngoingProgress } from '../types';
@@ -1506,7 +1506,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                 const tacticalRealization = progressPlanned > 0 ? (progressActual / progressPlanned) * 100 : (progressActual > 0 ? 100 : 0);
 
                 inProgressTasks.push({
-                    task: task,
+                    task: { ...task, actualStart: actualStartStr, actualEnd: actualEndStr },
                     durationInPeriod: durationInPeriodMs / (1000 * 60 * 60),
                     progressPlanned: progressPlanned,
                     progressActual: progressActual,
@@ -2502,6 +2502,11 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                         className="bg-transparent border-none focus:ring-0 text-xs font-black text-cyan-400 p-0 placeholder:text-slate-700 w-40" placeholder="Votre nom..." />
                                 </div>
                             </div>
+                            <button onClick={() => addToast('Progression enregistrée avec succès !', 'success')}
+                                className="relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 text-blue-400 hover:text-blue-300 font-black py-3 px-6 rounded-2xl flex items-center gap-3 transition-all">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                <span className="text-[10px] uppercase tracking-[0.2em] relative z-10">Sauvegarder</span>
+                            </button>
                             <button onClick={performExportPDF} disabled={isDownloading}
                                 className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black py-3 px-6 rounded-2xl flex items-center gap-3 transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] disabled:opacity-50 group">
                                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
