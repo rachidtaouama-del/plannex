@@ -24,6 +24,7 @@ interface SchedulingModalProps {
     defaultStartDate?: string | null;
     autoStartDate?: string | null;
     defaultMaxHours: number;
+    shiftStartTime?: string; // e.g. "07:00"
     lastTasksByTeam: Map<string, SchedulingTaskData>;
     availableTags: string[];
 }
@@ -161,7 +162,11 @@ const TagInput: React.FC<{
     );
 };
 
-export const SchedulingModal: React.FC<SchedulingModalProps> = ({ isOpen, onClose, onApply, allTasks, scheduledTasks, selectedTasks, defaultStartDate, autoStartDate, defaultMaxHours, lastTasksByTeam, availableTags }) => {
+export const SchedulingModal: React.FC<SchedulingModalProps> = ({
+    isOpen, onClose, onApply, allTasks, scheduledTasks, selectedTasks,
+    defaultStartDate, autoStartDate, defaultMaxHours, shiftStartTime = '07:00',
+    lastTasksByTeam, availableTags
+}) => {
     const [teamAssignments, setTeamAssignments] = useState<Record<string, string>>({});
     const [teamTags, setTeamTags] = useState<Record<string, string[]>>({});
     const [maxHours, setMaxHours] = useState(8.0);
@@ -357,11 +362,30 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({ isOpen, onClos
             }
         });
 
+        // --- KEY FIX: compute availability for the TARGET day only ---
+        // Parse the shift window for the scheduling date
+        const [shiftH, shiftM] = shiftStartTime.split(':').map(Number);
+        const targetDate = effectiveStartDate ? new Date(effectiveStartDate) : new Date();
+        const targetDayStart = new Date(targetDate);
+        targetDayStart.setHours(shiftH, shiftM, 0, 0);
+        const targetDayEnd = new Date(targetDayStart.getTime() + maxHours * 3600 * 1000);
+
         allKnownTeams.forEach(fullTeamName => {
             const teamTasks = scheduledTasks.filter(t => t.isScheduled && t["TYPE D'EQUIPE"] && `${t.DISCIPLINE} ${t["TYPE D'EQUIPE"]}` === fullTeamName);
 
-            const totalDuration = teamTasks.reduce((sum, task) => sum + task.DUREE, 0);
-            const availability = maxHours - totalDuration;
+            // Sum only hours that overlap the target day's shift window
+            const hoursOnTargetDay = teamTasks
+                .filter(t => t['START DATE'] && t['END DATE'])
+                .reduce((sum, task) => {
+                    const tStart = task['START DATE']!.getTime();
+                    const tEnd = task['END DATE']!.getTime();
+                    const winStart = targetDayStart.getTime();
+                    const winEnd = targetDayEnd.getTime();
+                    const overlapMs = Math.max(0, Math.min(tEnd, winEnd) - Math.max(tStart, winStart));
+                    return sum + overlapMs / 3_600_000;
+                }, 0);
+
+            const availability = Math.max(0, maxHours - hoursOnTargetDay);
             const manpower = teamTasks.length > 0 ? Math.max(...teamTasks.map(t => t.EFFECTIF)) : 0;
 
             const sortedTeamTasks = teamTasks.sort((a, b) => (a['START DATE']?.getTime() || 0) - (b['START DATE']?.getTime() || 0));
@@ -369,11 +393,9 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({ isOpen, onClos
             for (let i = 0; i < sortedTeamTasks.length - 1; i++) {
                 const currentTaskEnd = sortedTeamTasks[i]['END DATE'];
                 const nextTaskStart = sortedTeamTasks[i + 1]['START DATE'];
-
                 if (currentTaskEnd && nextTaskStart) {
                     const gapMillis = nextTaskStart.getTime() - currentTaskEnd.getTime();
-
-                    if (gapMillis > 5 * 60 * 1000) { // Gaps over 5 minutes
+                    if (gapMillis > 5 * 60 * 1000) {
                         gaps.push({
                             start: currentTaskEnd,
                             end: nextTaskStart,
@@ -387,7 +409,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({ isOpen, onClos
         });
 
         return info;
-    }, [scheduledTasks, maxHours, lastTasksByTeam, teamAssignments, involvedDisciplines]);
+    }, [scheduledTasks, maxHours, shiftStartTime, effectiveStartDate, lastTasksByTeam, teamAssignments, involvedDisciplines]);
 
     const potentialPredecessors = useMemo(() => {
         // A predecessor must be a task that is already scheduled.

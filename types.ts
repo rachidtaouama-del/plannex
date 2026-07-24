@@ -76,6 +76,9 @@ export interface SchedulingTaskData extends Record<string, any> {
   Latitude?: string | number;
   Longitude?: string | number;
 
+  // Work mode — set in app (not from Excel), default SHIFT
+  mode?: 'SHIFT' | '24H';
+
   // Attached PDR (Spare parts) Items
   pdrItems?: PDRItem[];
 
@@ -134,6 +137,7 @@ export interface ShutdownParams {
   deconsignation: number;
   combustion: number | CombustionParams;
   workingHoursPerDay: 8 | 12 | 24;
+  shiftStartTime?: string; // e.g. "07:00" — optional for backwards compat
 }
 
 export interface SchedulingFilters {
@@ -154,6 +158,8 @@ export interface SchedulingPageState {
   currentFile: File;
   filters: SchedulingFilters;
   dailyDurationLimit: number;
+  shiftStartTime?: string; // e.g. "07:00" — optional for backwards compat
+
   evaluationData?: EvaluationData;
   costData?: CompanyCost[];        // Legacy: single-rate COSTE sheet
   costHubEntries?: CostHubEntry[]; // New: multi-rate Cost Hub sheet
@@ -293,6 +299,8 @@ export interface AppParameters {
   deconsignation: number;
   combustion: CombustionParams;
   demarrage: number; // in minutes
+  shiftStartTime?: string; // e.g. "07:00" — when each daily shift begins
+  shiftDurationHours?: number; // 8, 12, or 24
 }
 
 // New Interface for Data Health

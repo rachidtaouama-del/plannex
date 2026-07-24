@@ -16,6 +16,7 @@ interface LiveSchedulingModalProps {
     scheduledTasks: SchedulingTaskData[];
     shutdownParams: ShutdownParams;
     dailyDurationLimit: number;
+    shiftStartTime?: string;
     lastTasksByTeam: Map<string, SchedulingTaskData>;
     disciplineColors: Map<string, string>;
     setDisciplineColors: React.Dispatch<React.SetStateAction<Map<string, string>>>;
@@ -105,7 +106,7 @@ const StatusBadge: React.FC<{ isScheduled: boolean }> = ({ isScheduled }) => (
 // ======= MAIN COMPONENT =======
 export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
     isOpen, onClose, allTasks, onSave,
-    scheduledTasks, shutdownParams, dailyDurationLimit, lastTasksByTeam,
+    scheduledTasks, shutdownParams, dailyDurationLimit, shiftStartTime = '07:00', lastTasksByTeam,
     disciplineColors, setDisciplineColors, timelineOptions, setTimelineOptions,
     familyOrder, setFamilyOrder,
     autoStartDate, availableTags = [],
@@ -226,8 +227,11 @@ export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
     const parameters = useMemo((): AppParameters => ({
         shutdownStart: shutdownParams.shutdownStart, shutdownEnd: shutdownParams.shutdownEnd,
         consignation: shutdownParams.consignation, deconsignation: shutdownParams.deconsignation,
-        combustion: { mode: 'parallel', value: shutdownParams.combustion }, demarrage: 0,
-    }), [shutdownParams]);
+        combustion: typeof shutdownParams.combustion === 'number' ? { mode: 'parallel', value: shutdownParams.combustion } : shutdownParams.combustion, demarrage: 0,
+        shiftStartTime: shiftStartTime,
+        shiftDurationHours: dailyDurationLimit > 0 ? dailyDurationLimit : 12,
+    }), [shutdownParams, shiftStartTime, dailyDurationLimit]);
+
 
     const handleTaskBlockSequenceChange = (taskIds: string[], direction: 'up' | 'down') => {
         setLocalTasks(currentTasks => {
@@ -793,6 +797,7 @@ export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
                 defaultStartDate={shutdownParams.shutdownStart}
                 autoStartDate={autoStartDate}
                 defaultMaxHours={dailyDurationLimit || 12}
+                shiftStartTime={shiftStartTime}
                 lastTasksByTeam={lastTasksByTeam}
                 availableTags={availableTags}
             />

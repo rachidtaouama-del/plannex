@@ -7,13 +7,15 @@ interface ResourceStatusPanelProps {
     tasks: SchedulingTaskData[];
     dailyDurationLimit: number;
     setDailyDurationLimit: (value: number) => void;
+    shiftStartTime: string;
+    setShiftStartTime: (value: string) => void;
     onViewTeamTasks: (team: { name: string; tasks: SchedulingTaskData[] }) => void;
     onRenameTeam: (discipline: string, oldPartialName: string, newPartialName: string) => boolean;
     tagsByTeam: Record<string, string[]>;
     shutdownParams: { shutdownStart: string | Date; shutdownEnd: string | Date } | null;
 }
 
-export const ResourceStatusPanel: React.FC<ResourceStatusPanelProps> = ({ tasks, dailyDurationLimit, setDailyDurationLimit, onViewTeamTasks, onRenameTeam, tagsByTeam, shutdownParams }) => {
+export const ResourceStatusPanel: React.FC<ResourceStatusPanelProps> = ({ tasks, dailyDurationLimit, setDailyDurationLimit, shiftStartTime, setShiftStartTime, onViewTeamTasks, onRenameTeam, tagsByTeam, shutdownParams }) => {
     const formatDateForInput = (date: Date) => {
         return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
     };
@@ -433,25 +435,45 @@ export const ResourceStatusPanel: React.FC<ResourceStatusPanelProps> = ({ tasks,
                         />
                     </div>
                     <div className="xl:col-span-2 flex flex-col justify-end">
-                        <label className="text-[10px] font-black text-slate-500 mb-2 block uppercase tracking-widest ml-1">Capacité Max. / Jour (H)</label>
-                        <div className="flex items-center gap-3">
-                            <div className="relative flex-grow group">
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    value={localLimit}
-                                    onChange={(e) => setLocalLimit(e.target.value)}
-                                    className={`w-full bg-slate-950/40 border rounded-2xl pl-4 pr-10 py-3 text-xs font-black text-slate-200 transition-all duration-300 ${dailyDurationLimit <= 0 ? 'border-amber-500/50 ring-4 ring-amber-500/10 shadow-lg shadow-amber-500/5' : 'border-white/5 focus:border-white/20 focus:ring-4 focus:ring-white/5 focus:outline-none'}`}
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 group-hover:text-slate-400 transition-colors uppercase tracking-widest">Hrs</span>
+                        <label className="text-[10px] font-black text-slate-500 mb-2 block uppercase tracking-widest ml-1">Calendrier de Travail</label>
+                        <div className="flex flex-col gap-2">
+                            {/* Shift type buttons */}
+                            <div className="flex items-center gap-2">
+                                {([8, 12, 24] as const).map(h => (
+                                    <button
+                                        key={h}
+                                        type="button"
+                                        onClick={() => setDailyDurationLimit(h)}
+                                        className={`flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 border ${
+                                            dailyDurationLimit === h
+                                                ? 'bg-emerald-600 border-emerald-400/40 text-white shadow-lg shadow-emerald-900/40'
+                                                : 'bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {h}H
+                                    </button>
+                                ))}
                             </div>
-                            <button
-                                onClick={handleConfirmLimit}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[10px] uppercase tracking-widest px-6 rounded-2xl transition-all h-[42px] whitespace-nowrap shadow-xl shadow-emerald-900/40 active:scale-95 border border-emerald-400/30"
-                            >
-                                {dailyDurationLimit <= 0 ? 'Activer' : 'Adapter'}
-                            </button>
+                            {/* Shift start time */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Début shift :</span>
+                                <input
+                                    type="time"
+                                    value={shiftStartTime}
+                                    onChange={e => setShiftStartTime(e.target.value)}
+                                    className="flex-1 bg-slate-950/40 border border-white/5 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-200 focus:outline-none focus:border-white/20 transition-all"
+                                />
+                                {dailyDurationLimit > 0 && (
+                                    <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                                        → {(() => {
+                                            const [h, m] = shiftStartTime.split(':').map(Number);
+                                            const end = new Date(0);
+                                            end.setHours(h + dailyDurationLimit, m);
+                                            return `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`;
+                                        })()}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className="xl:col-span-2 flex items-center h-[42px]">
