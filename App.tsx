@@ -766,73 +766,80 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     });
   };
 
-  const handleSelectColdStop = () => {
+  const handleSelectColdStop = useCallback(() => {
     setIsScratchMode(false);
     setIsColdStopFlow(true);
     setSchedulingStep(undefined);
     setActivePage('scheduling');
-  };
+  }, []);
 
-  const handleStartFromScratch = () => {
+  const handleStartFromScratch = useCallback(() => {
     setIsScratchMode(true);
     setSchedulingState(null);
     setIsColdStopFlow(true);
     setSchedulingStep(undefined);
     setActivePage('scheduling');
-  };
+  }, []);
 
-  const handleNavigateToTeamView = () => setPlannerSubPage('team');
-  const handleNavigateToEvaluationView = () => setPlannerSubPage('evaluation');
+  const handleNavigateToTeamView = useCallback(() => setPlannerSubPage('team'), []);
+  const handleNavigateToEvaluationView = useCallback(() => setPlannerSubPage('evaluation'), []);
 
-  const handleNavigateToHotReview = () => {
+  const handleNavigateToHotReview = useCallback(() => {
     if (schedulingParams) {
       setHotReviewState(prev => {
         const newState = { ...prev };
         if (!newState.startDate) newState.startDate = schedulingParams.shutdownStart;
         if (!newState.endDate) newState.endDate = schedulingParams.shutdownEnd;
-        // Auto-load if displayed dates are empty
         if (!newState.displayedStartDate) newState.displayedStartDate = newState.startDate;
         if (!newState.displayedEndDate) newState.displayedEndDate = newState.endDate;
         return newState;
       });
     }
     setActivePage('hot_execution_review');
-  };
+  }, [schedulingParams]);
 
-  const handleBackToScheduling = () => {
+  const handleBackToScheduling = useCallback(() => {
     setSchedulingStep('scheduling');
     setActivePage('scheduling');
-  };
+  }, []);
 
-  const handleNavigateToDashboard = () => {
+  const handleNavigateToDashboard = useCallback(() => {
     setSchedulingStep('dashboard');
     setActivePage('scheduling');
-  };
+  }, []);
 
-  const handleSchedulingBack = () => {
+  const handleSchedulingBack = useCallback(() => {
     if (schedulingResults) {
       setActivePage('planner');
       setPlannerSubPage('dashboard');
     } else {
       handleSetPage('admin_dashboard');
     }
-  };
+  }, [schedulingResults]);
+
+  // Stable back handlers for heavy components
+  const handleBackToPlannerDashboard = useCallback(() => {
+    setPlannerSubPage('dashboard');
+    setActivePage('planner');
+  }, []);
+
+  // Stable save handler for HotExecutionReview
+  const handleSaveProjectStable = useCallback(() => handleManualSave(false), [handleManualSave]);
+
+  // Stable portal navigation
+  const handleNavigateToPortal = useCallback(() => handleSetPage('admin_dashboard'), [handleSetPage]);
+  const handleNavigateToReadiness = useCallback(() => {
+    setSchedulingStep('readiness' as any);
+    setActivePage('scheduling');
+  }, []);
+  const handleNavigateToWhatIf = useCallback(() => handleSetPage('what_if_scenario'), [handleSetPage]);
+  const handleNavigateToAICopilot = useCallback(() => handleSetPage('ai_copilot'), [handleSetPage]);
 
 
-  const renderPlannerPage = () => {
-    if (!isAuthenticated) return <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
-    if (!schedulingResults || !schedulingParams || !evaluationData || !evaluationKpis) {
-      // State hasn't settled yet (e.g. after entering a project from the Hub).
-      // Show a loading spinner for up to 5 seconds to let async state updates propagate.
-      // Only redirect to portal after that timeout to handle a true page-refresh scenario.
-      return (
-        <PlannerSessionLoader
-          onTimeout={() => handleSetPage('admin_dashboard')}
-        />
-      );
-    }
-
-    const commonDashboardProps = {
+  // Memoized props for ResultsDashboard — only re-creates when actual data changes
+  const commonDashboardProps = useMemo(() => {
+    if (!schedulingResults || !schedulingParams) return null;
+    return {
       results: schedulingResults,
       isLoading: false,
       error: null,
@@ -845,17 +852,29 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       isColdStopFlow: isColdStopFlow,
       customCriticalPaths: customCriticalPaths,
       setCustomCriticalPaths: setCustomCriticalPaths,
-      onNavigateToPortal: () => {
-        handleSetPage('admin_dashboard');
-      },
+      onNavigateToPortal: handleNavigateToPortal,
       onNavigateToDashboard: handleNavigateToDashboard,
-      onNavigateToReadiness: () => {
-        setSchedulingStep('readiness' as any);
-        setActivePage('scheduling');
-      },
-      onNavigateToWhatIf: () => handleSetPage('what_if_scenario'),
-      onNavigateToAICopilot: () => handleSetPage('ai_copilot'),
+      onNavigateToReadiness: handleNavigateToReadiness,
+      onNavigateToWhatIf: handleNavigateToWhatIf,
+      onNavigateToAICopilot: handleNavigateToAICopilot,
     };
+  }, [
+    schedulingResults, schedulingParams, schedulingState?.handlingRecords, isColdStopFlow,
+    customCriticalPaths, setCustomCriticalPaths,
+    handleNavigateToTeamView, handleNavigateToEvaluationView, handleNavigateToHotReview,
+    handleBackToScheduling, handleNavigateToPortal, handleNavigateToDashboard,
+    handleNavigateToReadiness, handleNavigateToWhatIf, handleNavigateToAICopilot,
+  ]);
+
+  const renderPlannerPage = () => {
+    if (!isAuthenticated) return <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+    if (!schedulingResults || !schedulingParams || !evaluationData || !evaluationKpis) {
+      return (
+        <PlannerSessionLoader
+          onTimeout={() => handleSetPage('admin_dashboard')}
+        />
+      );
+    }
 
     switch (plannerSubPage) {
       case 'team':
@@ -864,11 +883,11 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
         return <div className="px-4 sm:px-6 lg:px-8 py-8"><EvaluationView results={schedulingResults} parameters={schedulingParams} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} evaluationKpis={evaluationKpis} onBack={handleBackToDashboard} user={currentUser} /></div>;
       case 'dashboard':
       default:
-        return (
+        return commonDashboardProps ? (
           <div className="px-4 sm:px-6 lg:px-8 py-8">
             <ResultsDashboard {...commonDashboardProps} />
           </div>
-        );
+        ) : null;
     }
   }
 
@@ -909,7 +928,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       case 'planner':
         return renderPlannerPage();
       case 'hot_execution_review':
-        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={() => { setPlannerSubPage('dashboard'); setActivePage('planner'); }} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={() => handleManualSave(false)} hasUnsavedChanges={hasUnsavedChanges} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={handleBackToPlannerDashboard} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={handleSaveProjectStable} hasUnsavedChanges={hasUnsavedChanges} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'what_if_scenario':
         return isAuthenticated && schedulingResults ? (
           <WhatIfScenarioPage

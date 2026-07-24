@@ -686,4 +686,4 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
     );
 };
 
-export default TeamScheduleView;
+export default React.memo(TeamScheduleView);

@@ -3715,5 +3715,5 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
     );
 };
 
-export default HotExecutionReview;
+export default React.memo(HotExecutionReview);
 

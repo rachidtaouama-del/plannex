@@ -1,4 +1,4 @@
-﻿
+
 
 import React, { useState, useMemo, useEffect } from 'react';
 import type { CalculationResults, AppParameters, EvaluationData, EvaluatedTaskData, SupplementaryTask, TaskStatus, ScheduledTask, NonCompletionDetails, SlippageDetails, GlobalSlippageEvent, ReportData, EvaluationKpis, TeamDetail, ChronologyEvent, EventDetail } from '../types';
@@ -3324,4 +3324,4 @@ const EvaluationView: React.FC<EvaluationViewProps> = ({
     );
 };
 
-export default EvaluationView;
+export default React.memo(EvaluationView);

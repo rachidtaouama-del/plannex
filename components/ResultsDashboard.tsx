@@ -2354,4 +2354,4 @@ const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ results, isLoading,
     );
 };
 
-export default ResultsDashboard;
+export default React.memo(ResultsDashboard);
