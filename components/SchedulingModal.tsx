@@ -5,6 +5,7 @@ import { TaskSelector } from './TaskSelector';
 import { AllTeamsStatusModal } from './AllTeamsStatusModal';
 import { TasksForGapModal } from './TasksForGapModal';
 import { TeamTasksModal } from './TeamTasksModal';
+import { MultiShiftModal, type ShiftBlock } from './MultiShiftModal';
 
 interface SchedulingModalProps {
     isOpen: boolean;
@@ -189,6 +190,17 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
 
     // State for viewing team tasks
     const [viewingTeamTasksData, setViewingTeamTasksData] = useState<{ name: string; tasks: SchedulingTaskData[] } | null>(null);
+
+    // Multi-shift modal state
+    const [multiShiftContext, setMultiShiftContext] = useState<{
+        taskName: string;
+        discipline: string;
+        taskDuration: number;
+        taskManpower: number;
+        taskStartDate: Date;
+        pendingStartDate: string;
+        existingTeams: string[];
+    } | null>(null);
 
     const involvedDisciplines = useMemo(() => {
         // Keep order of appearance (no sort) to match table visually
@@ -445,10 +457,21 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
         });
     };
 
+    const doApply = (finalStartDate: string) => {
+        onApply({
+            teamAssignments,
+            maxHours,
+            startDate: finalStartDate,
+            predecessorIds: schedulingMode === 'dependency' ? predecessorIds : [],
+            relation,
+            isCritical,
+            teamTags
+        });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate: predecessor is required when using dependency mode
         if (schedulingMode === 'dependency' && predecessorIds.length === 0) {
             setPredecessorWarning(true);
             return;
@@ -461,15 +484,29 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
             case 'dependency': finalStartDate = effectiveStartDate || new Date().toISOString(); break;
         }
 
-        onApply({
-            teamAssignments,
-            maxHours,
-            startDate: finalStartDate,
-            predecessorIds: schedulingMode === 'dependency' ? predecessorIds : [],
-            relation,
-            isCritical,
-            teamTags
-        });
+        // ── Long Task Detection ───────────────────────────────────────────
+        // If any selected task has mode=24H and duration > shiftDuration → open MultiShiftModal
+        const longTask = maxHours > 0
+            ? selectedTasks.find(t => (t.mode === '24H') && t.DUREE > maxHours)
+            : null;
+
+        if (longTask) {
+            const discipline = longTask.DISCIPLINE || involvedDisciplines[0] || '';
+            const existingT = existingTeamsByDiscipline[discipline] || [];
+            setMultiShiftContext({
+                taskName: longTask['GLOBAL TASKS'] || `Tâche #${longTask.id}`,
+                discipline,
+                taskDuration: longTask.DUREE,
+                taskManpower: longTask.EFFECTIF || 1,
+                taskStartDate: finalStartDate ? new Date(finalStartDate) : new Date(),
+                pendingStartDate: finalStartDate,
+                existingTeams: existingT,
+            });
+            return; // do NOT apply yet — wait for user to confirm in MultiShiftModal
+        }
+        // ──────────────────────────────────────────────────────────────────
+
+        doApply(finalStartDate);
     };
 
     const handleShowTasksForGap = (duration: number, discipline: string) => {
@@ -495,7 +532,34 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 allTasks={allTasks}
                 discipline={currentGapDiscipline}
             />
+            {/* ============ MULTI-SHIFT MODAL ============ */}
+            <MultiShiftModal
+                isOpen={!!multiShiftContext}
+                onClose={() => setMultiShiftContext(null)}
+                taskName={multiShiftContext?.taskName || ''}
+                taskDuration={multiShiftContext?.taskDuration || 0}
+                taskManpower={multiShiftContext?.taskManpower || 1}
+                discipline={multiShiftContext?.discipline || ''}
+                shiftDuration={maxHours || 12}
+                shiftStartTime={shiftStartTime}
+                taskStartDate={multiShiftContext?.taskStartDate || new Date()}
+                existingTeams={multiShiftContext?.existingTeams || []}
+                onApplyMultiShift={(shifts: ShiftBlock[]) => {
+                    // Store shift assignments on the task then apply normally
+                    // The shiftAssignments will be used downstream for team tracking
+                    const pendingDate = multiShiftContext?.pendingStartDate || '';
+                    setMultiShiftContext(null);
+                    doApply(pendingDate);
+                }}
+                onKeepSingleTeam={() => {
+                    const pendingDate = multiShiftContext?.pendingStartDate || '';
+                    setMultiShiftContext(null);
+                    doApply(pendingDate);
+                }}
+            />
+
             <AllTeamsStatusModal
+
                 isOpen={isAllTeamsStatusModalOpen}
                 onClose={() => setAllTeamsStatusModalOpen(false)}
                 allScheduledTasks={scheduledTasks}
@@ -507,7 +571,12 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 shiftStartTime={shiftStartTime}
                 shutdownStart={shutdownStart}
                 shutdownEnd={shutdownEnd}
+                onSelectTeam={(discipline, teamType) => {
+                    setTeamAssignments(prev => ({ ...prev, [discipline]: teamType }));
+                    setAllTeamsStatusModalOpen(false);
+                }}
             />
+
             <TeamTasksModal
                 isOpen={!!viewingTeamTasksData}
                 onClose={() => setViewingTeamTasksData(null)}

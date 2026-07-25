@@ -79,7 +79,17 @@ export interface SchedulingTaskData extends Record<string, any> {
   // Work mode — set in app (not from Excel), default SHIFT
   mode?: 'SHIFT' | '24H';
 
+  // Multi-shift rotation assignments (for 24H tasks > MAX_HOURS_PER_DAY)
+  shiftAssignments?: Array<{
+    shiftIndex: number;        // 1, 2, 3...
+    teamType: string;          // e.g. "Équipe A"
+    startTime: Date;
+    endTime: Date;
+    manpower: number;
+  }>;
+
   // Attached PDR (Spare parts) Items
+
   pdrItems?: PDRItem[];
 
   // Permit and Procedure Fields (Older fields kept for compatibility)
