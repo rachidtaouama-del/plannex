@@ -487,10 +487,11 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
         }
 
         // ── Long Task Detection ───────────────────────────────────────────
-        // If any selected task has mode=24H and duration > shiftDuration → open MultiShiftModal
+        // If any selected task has duration > shiftDuration → open MultiShiftModal
         const longTask = maxHours > 0
-            ? selectedTasks.find(t => (t.mode === '24H') && t.DUREE > maxHours)
+            ? selectedTasks.find(t => t.DUREE > maxHours)
             : null;
+
 
         if (longTask) {
             const discipline = longTask.DISCIPLINE || involvedDisciplines[0] || '';

@@ -2844,9 +2844,8 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                 'TYPE D\'EQUIPE': name,
                                 'EQUIPE NUMBER': number,
                                 'START DATE': currentTaskStartTime,
-                                'END DATE': currentTaskEndTime,
                                 isKeyEvent: constraints.isCritical,
-                                ...(taskShifts && taskShifts.length > 0 ? { shiftAssignments: taskShifts } : {}),
+                                ...(taskShifts && taskShifts.length > 0 ? { shiftAssignments: taskShifts, mode: '24H' as const } : {}),
                             };
                         }
                         if (constraints.relation === 'FS') {
@@ -2902,7 +2901,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                             current.setHours(0, 0, 0, 0);
                         }
                     });
-                    const teamIs24H = teamTasks.some(t => t.mode === '24H');
+                    const teamIs24H = teamTasks.some(t => t.mode === '24H' || (t.shiftAssignments && t.shiftAssignments.length > 0));
                     if (dailyDurationLimit > 0 && !teamIs24H && Object.values(workloadByDay).some(hours => hours > dailyDurationLimit)) {
                         overloadedTeamNames.push(teamName);
                     }
