@@ -284,10 +284,32 @@ export const AllTeamsStatusModal: React.FC<AllTeamsStatusModalProps> = ({
         const teamMap = new Map<string, { discipline: string; tasks: SchedulingTaskData[] }>();
         allScheduledTasks.forEach(task => {
             if (!task.isScheduled || !task["TYPE D'EQUIPE"]) return;
-            const key = `${task.DISCIPLINE} ${task["TYPE D'EQUIPE"]}`;
-            if (!teamMap.has(key)) teamMap.set(key, { discipline: task.DISCIPLINE, tasks: [] });
-            teamMap.get(key)!.tasks.push(task);
+
+            // Primary team entry (the task's own TYPE D'EQUIPE)
+            const primaryKey = `${task.DISCIPLINE} ${task["TYPE D'EQUIPE"]}`;
+            if (!teamMap.has(primaryKey)) teamMap.set(primaryKey, { discipline: task.DISCIPLINE, tasks: [] });
+            teamMap.get(primaryKey)!.tasks.push(task);
+
+            // Secondary teams from shiftAssignments (multi-shift rotation)
+            if (task.shiftAssignments && task.shiftAssignments.length > 1) {
+                task.shiftAssignments.forEach(shift => {
+                    if (shift.teamType === task["TYPE D'EQUIPE"]) return; // already added above
+                    const shiftKey = `${task.DISCIPLINE} ${shift.teamType}`;
+                    if (!teamMap.has(shiftKey)) teamMap.set(shiftKey, { discipline: task.DISCIPLINE, tasks: [] });
+                    // Create a synthetic view of this task from the secondary team's perspective
+                    const shiftTask: SchedulingTaskData = {
+                        ...task,
+                        "TYPE D'EQUIPE": shift.teamType,
+                        'START DATE': shift.startTime instanceof Date ? shift.startTime : new Date(shift.startTime),
+                        'END DATE': shift.endTime instanceof Date ? shift.endTime : new Date(shift.endTime),
+                        DUREE: shift.durationH,
+                        EFFECTIF: shift.manpower,
+                    };
+                    teamMap.get(shiftKey)!.tasks.push(shiftTask);
+                });
+            }
         });
+
 
         const checkStart = checkAvailabilityInterval?.start ?? null;
         const checkEnd = checkAvailabilityInterval?.end ?? null;

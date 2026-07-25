@@ -18,6 +18,7 @@ interface SchedulingModalProps {
         relation: 'FS' | 'SS';
         isCritical: boolean;
         teamTags: Record<string, string[]>;
+        shiftBlocks?: ShiftBlock[]; // multi-shift rotation data
     }) => void;
     allTasks: SchedulingTaskData[];
     scheduledTasks: SchedulingTaskData[];
@@ -457,7 +458,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
         });
     };
 
-    const doApply = (finalStartDate: string) => {
+    const doApply = (finalStartDate: string, shiftBlocks?: ShiftBlock[]) => {
         onApply({
             teamAssignments,
             maxHours,
@@ -465,7 +466,8 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
             predecessorIds: schedulingMode === 'dependency' ? predecessorIds : [],
             relation,
             isCritical,
-            teamTags
+            teamTags,
+            shiftBlocks,
         });
     };
 
@@ -545,16 +547,18 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 taskStartDate={multiShiftContext?.taskStartDate || new Date()}
                 existingTeams={multiShiftContext?.existingTeams || []}
                 onApplyMultiShift={(shifts: ShiftBlock[]) => {
-                    // Store shift assignments on the task then apply normally
-                    // The shiftAssignments will be used downstream for team tracking
                     const pendingDate = multiShiftContext?.pendingStartDate || '';
+                    // Set team assignment for the discipline to the first shift's team
+                    if (multiShiftContext?.discipline && shifts.length > 0) {
+                        setTeamAssignments(prev => ({ ...prev, [multiShiftContext.discipline]: shifts[0].teamType }));
+                    }
                     setMultiShiftContext(null);
-                    doApply(pendingDate);
+                    doApply(pendingDate, shifts);
                 }}
                 onKeepSingleTeam={() => {
                     const pendingDate = multiShiftContext?.pendingStartDate || '';
                     setMultiShiftContext(null);
-                    doApply(pendingDate);
+                    doApply(pendingDate, []);
                 }}
             />
 

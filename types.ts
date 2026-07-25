@@ -86,6 +86,7 @@ export interface SchedulingTaskData extends Record<string, any> {
     startTime: Date;
     endTime: Date;
     manpower: number;
+    durationH: number;         // hours for this shift block
   }>;
 
   // Attached PDR (Spare parts) Items

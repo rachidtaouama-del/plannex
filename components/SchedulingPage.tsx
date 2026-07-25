@@ -2741,6 +2741,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
         relation: 'FS' | 'SS';
         isCritical: boolean;
         teamTags: Record<string, string[]>;
+        shiftBlocks?: import('./MultiShiftModal').ShiftBlock[];
     }) => {
         const executeScheduling = (resolutions: Record<string, number>) => {
             const harmonizedTasks = tasks.map(task => {
@@ -2830,6 +2831,11 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                         if (taskIndex !== -1) {
                             const { name, number } = teamAssignmentsByName[discipline];
 
+                            // Build shiftAssignments for this task if provided
+                            const taskShifts = constraints.shiftBlocks?.filter(
+                                s => s.shiftIndex > 0
+                            ) || undefined;
+
                             newTasks[taskIndex] = {
                                 ...newTasks[taskIndex],
                                 isScheduled: true,
@@ -2840,6 +2846,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                 'START DATE': currentTaskStartTime,
                                 'END DATE': currentTaskEndTime,
                                 isKeyEvent: constraints.isCritical,
+                                ...(taskShifts && taskShifts.length > 0 ? { shiftAssignments: taskShifts } : {}),
                             };
                         }
                         if (constraints.relation === 'FS') {
@@ -4428,18 +4435,29 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                                     </td>
                                                     {/* MODE toggle cell */}
                                                     <td className="px-2 py-1.5 text-center border-r border-white/[0.02]">
-                                                        <button
-                                                            onClick={() => handleToggleMode(task.id)}
-                                                            title={task.mode === '24H' ? 'Mode 24H — cliquer pour passer en SHIFT' : 'Mode SHIFT — cliquer pour passer en 24H'}
-                                                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all duration-200 border ${
-                                                                task.mode === '24H'
-                                                                    ? 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
-                                                                    : 'bg-sky-500/10 border-sky-500/20 text-sky-500 hover:bg-sky-500/20'
-                                                            }`}
-                                                        >
-                                                            {task.mode === '24H' ? '24H' : 'SHIFT'}
-                                                        </button>
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <button
+                                                                onClick={() => handleToggleMode(task.id)}
+                                                                title={task.mode === '24H' ? 'Mode 24H — cliquer pour passer en SHIFT' : 'Mode SHIFT — cliquer pour passer en 24H'}
+                                                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all duration-200 border ${
+                                                                    task.mode === '24H'
+                                                                        ? 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
+                                                                        : 'bg-sky-500/10 border-sky-500/20 text-sky-500 hover:bg-sky-500/20'
+                                                                }`}
+                                                            >
+                                                                {task.mode === '24H' ? '24H' : 'SHIFT'}
+                                                            </button>
+                                                            {task.shiftAssignments && task.shiftAssignments.length > 0 && (
+                                                                <span
+                                                                    className="text-[8px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                                                                    title={`Rotation: ${task.shiftAssignments.map(s => `S${s.shiftIndex}→${s.teamType}`).join(', ')}`}
+                                                                >
+                                                                    🔄 {task.shiftAssignments.length}×
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
+
                                                     {/* Dynamic Cell Rendering */}
                                                     {columnDefs.filter(col => col.visible).map(col => (
                                                         <td key={`${task.id}-${col.key}`} className="px-4 py-1.5 whitespace-nowrap border-r border-white/[0.02]" style={{ maxWidth: `${col.width}px` }}>
