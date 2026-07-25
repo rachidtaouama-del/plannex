@@ -3771,7 +3771,10 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                 shiftStartTime={shiftStartTime}
                 lastTasksByTeam={lastTasksByTeam}
                 availableTags={tagSuggestions}
+                shutdownStart={shutdownParams?.shutdownStart}
+                shutdownEnd={shutdownParams?.shutdownEnd}
             />}
+
 
             {isLiveSchedulingOpen && shutdownParams && (
                 <LiveSchedulingModal

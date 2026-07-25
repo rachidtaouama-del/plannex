@@ -800,7 +800,10 @@ export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
                 shiftStartTime={shiftStartTime}
                 lastTasksByTeam={lastTasksByTeam}
                 availableTags={availableTags}
+                shutdownStart={shutdownParams.shutdownStart}
+                shutdownEnd={shutdownParams.shutdownEnd}
             />
+
 
             {/* ============ TEAM TASKS MODAL ============ */}
             <TeamTasksModal

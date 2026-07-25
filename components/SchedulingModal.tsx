@@ -27,6 +27,8 @@ interface SchedulingModalProps {
     shiftStartTime?: string; // e.g. "07:00"
     lastTasksByTeam: Map<string, SchedulingTaskData>;
     availableTags: string[];
+    shutdownStart?: string;
+    shutdownEnd?: string;
 }
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode; disabled?: boolean }> = ({ active, onClick, children, disabled }) => (
@@ -165,7 +167,8 @@ const TagInput: React.FC<{
 export const SchedulingModal: React.FC<SchedulingModalProps> = ({
     isOpen, onClose, onApply, allTasks, scheduledTasks, selectedTasks,
     defaultStartDate, autoStartDate, defaultMaxHours, shiftStartTime = '07:00',
-    lastTasksByTeam, availableTags
+    lastTasksByTeam, availableTags,
+    shutdownStart, shutdownEnd,
 }) => {
     const [teamAssignments, setTeamAssignments] = useState<Record<string, string>>({});
     const [teamTags, setTeamTags] = useState<Record<string, string[]>>({});
@@ -501,9 +504,9 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 schedulingDate={effectiveStartDate}
                 checkAvailabilityInterval={timeRange}
                 hasStartDate={!!effectiveStartDate}
-                onViewTeamDetails={(teamName, tasks) => {
-                    setViewingTeamTasksData({ name: teamName, tasks });
-                }}
+                shiftStartTime={shiftStartTime}
+                shutdownStart={shutdownStart}
+                shutdownEnd={shutdownEnd}
             />
             <TeamTasksModal
                 isOpen={!!viewingTeamTasksData}
