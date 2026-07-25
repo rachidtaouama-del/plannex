@@ -2844,10 +2844,12 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                 'TYPE D\'EQUIPE': name,
                                 'EQUIPE NUMBER': number,
                                 'START DATE': currentTaskStartTime,
+                                'END DATE': currentTaskEndTime,
                                 isKeyEvent: constraints.isCritical,
                                 ...(taskShifts && taskShifts.length > 0 ? { shiftAssignments: taskShifts, mode: '24H' as const } : {}),
                             };
                         }
+
                         if (constraints.relation === 'FS') {
                             sequentialCursor = currentTaskEndTime;
                         }
