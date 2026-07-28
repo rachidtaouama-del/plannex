@@ -76,7 +76,32 @@ export const ResourceStatusPanel: React.FC<ResourceStatusPanelProps> = ({ tasks,
         }> = {};
 
         tasks.forEach(task => {
-            if (task.isScheduled && task["TYPE D'EQUIPE"]) {
+            if (!task.isScheduled) return;
+            if (task.shiftAssignments && task.shiftAssignments.length > 0) {
+                task.shiftAssignments.forEach(shift => {
+                    const fullTeamName = `${task.DISCIPLINE} ${shift.teamType}`;
+                    if (!teams[fullTeamName]) {
+                        teams[fullTeamName] = {
+                            tasks: [],
+                            discipline: task.DISCIPLINE,
+                            teamName: shift.teamType,
+                        };
+                    }
+                    const shiftStart = shift.startTime ? (shift.startTime instanceof Date ? shift.startTime : new Date(shift.startTime)) : new Date((shift as any).start);
+                    const shiftEnd = shift.endTime ? (shift.endTime instanceof Date ? shift.endTime : new Date(shift.endTime)) : new Date((shift as any).end);
+                    teams[fullTeamName].tasks.push({
+                        ...task,
+                        "TYPE D'EQUIPE": shift.teamType,
+                        'START DATE': shiftStart,
+                        'END DATE': shiftEnd,
+                        DUREE: shift.durationH,
+                        EFFECTIF: shift.manpower || task.EFFECTIF || 1,
+                        'GLOBAL TASKS': `${task['GLOBAL TASKS']} [S${shift.shiftIndex}]`,
+                    });
+                });
+                return;
+            }
+            if (task["TYPE D'EQUIPE"]) {
                 const fullTeamName = `${task.DISCIPLINE} ${task["TYPE D'EQUIPE"]}`;
                 if (!teams[fullTeamName]) {
                     teams[fullTeamName] = {

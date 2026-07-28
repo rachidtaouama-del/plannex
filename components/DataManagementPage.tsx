@@ -282,7 +282,7 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({
 
     const filteredMapTasks = useMemo(() => {
         return mapTasks.filter(t =>
-            searchTerm === '' || t.OT.includes(searchTerm) || t['GLOBAL TASKS']?.toLowerCase().includes(searchTerm.toLowerCase())
+            searchTerm === '' || String(t.OT || '').includes(searchTerm) || t['GLOBAL TASKS']?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [mapTasks, searchTerm]);
 
@@ -341,7 +341,9 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({
             'GLOBAL TASKS': `${task['GLOBAL TASKS']} (Copie)`,
             isScheduled: false,
             'START DATE': null,
-            'END DATE': null
+            'END DATE': null,
+            mode: undefined,
+            shiftAssignments: undefined,
         };
         onUpdateTasks([...tasks, duplicatedTask]);
     };
@@ -2210,7 +2212,12 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({
                                         onChange={e => {
                                             const company = e.target.value;
                                             const match = costHubEntries.find(c => c.company.toUpperCase() === company.toUpperCase() && String(c.posteNumber) === String(newHandling.posteNumber));
-                                            setNewHandling({ ...newHandling, company, posteDescription: match ? match.posteDescription : newHandling.posteDescription });
+                                            setNewHandling({ 
+                                                ...newHandling, 
+                                                company, 
+                                                posteDescription: match ? match.posteDescription : newHandling.posteDescription,
+                                                totalPrice: (match ? (newHandling.hours || 0) * (match.priceU || 0) : 0) + (newHandling.additionalCost || 0)
+                                            });
                                         }}
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:ring-2 focus:ring-purple-500/20"
                                         placeholder="Sélectionner ou saisir..."
@@ -2233,10 +2240,15 @@ export const DataManagementPage: React.FC<DataManagementPageProps> = ({
                                         onChange={e => {
                                             const posteNumber = e.target.value;
                                             if (!posteNumber) {
-                                                setNewHandling({ ...newHandling, posteNumber: '', posteDescription: '' });
+                                                setNewHandling({ ...newHandling, posteNumber: '', posteDescription: '', totalPrice: newHandling.additionalCost || 0 });
                                             } else {
                                                 const match = costHubEntries.find(c => c.company.toUpperCase() === (newHandling.company || '').toUpperCase() && String(c.posteNumber) === posteNumber);
-                                                setNewHandling({ ...newHandling, posteNumber, posteDescription: match ? match.posteDescription : newHandling.posteDescription });
+                                                setNewHandling({ 
+                                                    ...newHandling, 
+                                                    posteNumber, 
+                                                    posteDescription: match ? match.posteDescription : newHandling.posteDescription,
+                                                    totalPrice: (match ? (newHandling.hours || 0) * (match.priceU || 0) : 0) + (newHandling.additionalCost || 0)
+                                                });
                                             }
                                         }}
                                         className="w-full bg-slate-900/50 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:ring-2 focus:ring-purple-500/20"

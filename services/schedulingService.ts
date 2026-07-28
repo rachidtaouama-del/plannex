@@ -1,4 +1,4 @@
-﻿
+
 import type { RawTask, Task, AppParameters, CalculationResults, ScheduledTask, SchedulingTaskData, DataHealthIssue, EvaluationData, TaskStatus, CompanyCost, CostHubEntry, ScaffoldingRecord, HandlingRecord, PermitRecord, SimopsRecord } from '../types';
 
 const toDateTimeLocal = (date: Date): string => {
@@ -92,19 +92,26 @@ export const computeTaskCosts = (
 
     // Look up the Cost Hub entry for this task
     const hubEntry = costHubLookup(costHubMap, company, posteNumber);
-    const priceU = hubEntry?.priceU ?? parseLocaleNumber(task['PRICE FOR HH']);
+    const priceU = hubEntry?.priceU || parseLocaleNumber(task['PRICE FOR HH']) || parseLocaleNumber(task['MANUAL PRICE']) || 0;
     const costType = String(hubEntry?.costType || '').toUpperCase().trim();
     task['POSTE DESCRIPTION'] = hubEntry?.posteDescription ?? String(task['POSTE DESCRIPTION'] || '');
+    
+    // Infer cost type if missing from Cost Hub
+    let finalCostType = costType;
+    if (!finalCostType) {
+        if (hh > 0 && qty === 0) finalCostType = 'HH';
+        else finalCostType = 'QT';
+    }
     // Store cost type on task for display in CostControlPage
-    task['COST_TYPE'] = costType || 'QT';
+    task['COST_TYPE'] = finalCostType;
 
     // Task M.O cost: if Cost Type = 'HH' → use Heures-Homme × Price U, else QT × Price U
-    const baseQuantity = costType === 'HH' ? hh : qty;
+    const baseQuantity = finalCostType === 'HH' ? hh : qty;
     const taskCost = (baseQuantity * priceU) + additionalCost;
     task['TASK_COST'] = taskCost;
 
     // Phase 6: Granular separation
-    if (costType === 'HH') {
+    if (finalCostType === 'HH') {
         task['MO_HH_COST'] = taskCost;
         task['PRESTATION_COST'] = 0;
     } else {
@@ -112,33 +119,43 @@ export const computeTaskCosts = (
         task['PRESTATION_COST'] = taskCost;
     }
 
-    // Scaffolding cost — always calculated separately from its own sheet records
+    // Scaffolding cost — calculated strictly from Cost Hub or fallback to manual price
     let scaffoldingCost = 0;
-    (task.scaffoldingRecords || []).forEach(sr => {
-        const sEntry = costHubLookup(costHubMap, sr.company, sr.posteNumber);
-        const sPriceU = sEntry?.priceU ?? 0;
-        // Use Cost Hub price if available; otherwise fall back to the pre-computed TOTAL PRICE from the sheet
-        const sTotal = sPriceU > 0 ? (sr.QT * sPriceU) : (sr.totalPrice ?? 0);
-        sr.totalPrice = sTotal;
-        scaffoldingCost += sTotal;
-    });
+    if (task.isLeadTaskForOT !== false) {
+        (task.scaffoldingRecords || []).forEach(sr => {
+            const sEntry = costHubLookup(costHubMap, sr.company, sr.posteNumber);
+            const sPriceU = sEntry?.priceU ?? 0;
+            const sTotal = sr.QT * sPriceU;
+            sr.totalPrice = sTotal;
+            scaffoldingCost += sTotal;
+        });
+        if (scaffoldingCost === 0) {
+            scaffoldingCost = task['Scaffolding manual Price'] || 0;
+        }
+    }
     task['SCAFFOLDING_COST'] = scaffoldingCost;
 
-    // Handling cost — always calculated separately from its own sheet records
+    // Handling cost — calculated strictly from Cost Hub + Additional Cost or fallback to manual price
     let handlingCost = 0;
-    (task.handlingRecords || []).forEach(hr => {
-        const hEntry = costHubLookup(costHubMap, hr.company, hr.posteNumber);
-        const hPriceU = hEntry?.priceU ?? 0;
-        // Use Cost Hub price if available; otherwise fall back to the pre-computed TOTAL PRICE from the sheet
-        const hBase = hPriceU > 0 ? (hr.hours * hPriceU) : (hr.totalPrice ?? 0);
-        const hTotal = hBase + hr.additionalCost;
-        hr.totalPrice = hTotal;
-        handlingCost += hTotal;
-    });
+    if (task.isLeadTaskForOT !== false) {
+        (task.handlingRecords || []).forEach(hr => {
+            const hEntry = costHubLookup(costHubMap, hr.company, hr.posteNumber);
+            const hPriceU = hEntry?.priceU ?? 0;
+            const hTotal = (hr.hours * hPriceU) + hr.additionalCost;
+            hr.totalPrice = hTotal;
+            handlingCost += hTotal;
+        });
+        if (handlingCost === 0) {
+            handlingCost = task['Handling manual Price'] || 0;
+        }
+    }
     task['HANDLING_COST'] = handlingCost;
 
     // PDR cost
-    const pdrCost = (task.pdrItems || []).reduce((sum, p) => sum + (p.totalPrice ?? 0), 0);
+    let pdrCost = 0;
+    if (task.isLeadTaskForOT !== false) {
+        pdrCost = (task.pdrItems || []).reduce((sum, p) => sum + (p.totalPrice ?? 0), 0);
+    }
     task['PDR COST'] = pdrCost;
 
     // Grand Total = Task M.O + Scaffolding + Handling + PDR
@@ -534,6 +551,7 @@ export const parseSchedulingFile = (file: File): { promise: Promise<ParseResult>
 
                     let detectedStartDate: Date | null = null;
                     let detectedEndDate: Date | null = null;
+                    const seenOTsForCosting = new Set<string>();
 
                     const restoredTasks: SchedulingTaskData[] = progressJson.map((row: any, index): SchedulingTaskData => {
                         const startDate = row['START DATE'] ? new Date(row['START DATE']) : null;
@@ -632,6 +650,14 @@ export const parseSchedulingFile = (file: File): { promise: Promise<ParseResult>
                                 else if (pn.includes('levage')) { task.permisLevage = 1; task['permis Levage Readiness'] = pr.readiness; }
                                 else if (pn.includes('excavation')) { task.permisExcavation = 1; task['permis Excavation Readiness'] = pr.readiness; }
                             });
+                            
+                            if (!seenOTsForCosting.has(taskOtStr)) {
+                                task.isLeadTaskForOT = true;
+                                seenOTsForCosting.add(taskOtStr);
+                            } else {
+                                task.isLeadTaskForOT = false;
+                            }
+
                             // Compute costs
                             computeTaskCosts(task, costHubMap);
                         } else {
@@ -759,6 +785,7 @@ export const parseSchedulingFile = (file: File): { promise: Promise<ParseResult>
                 }
 
                 const rawJson: RawTask[] = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+                const seenOTsForCosting = new Set<string>();
 
                 if (rawJson.length === 0) {
                     reject(new Error("Le fichier Excel semble vide."));
@@ -992,6 +1019,14 @@ export const parseSchedulingFile = (file: File): { promise: Promise<ParseResult>
                                 task['permis Excavation Readiness'] = isReady ? 1 : 0;
                             }
                         });
+
+                        if (!seenOTsForCosting.has(taskOtStr)) {
+                            task.isLeadTaskForOT = true;
+                            seenOTsForCosting.add(taskOtStr);
+                        } else {
+                            task.isLeadTaskForOT = false;
+                        }
+
                         // Compute costs
                         computeTaskCosts(task, costHubMap);
                     } else {

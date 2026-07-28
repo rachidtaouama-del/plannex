@@ -208,6 +208,15 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
         return [...new Set(selectedTasks.map(t => t.DISCIPLINE).filter(Boolean))];
     }, [selectedTasks]);
 
+    const requiredHoursPerDiscipline = useMemo(() => {
+        const map: Record<string, number> = {};
+        selectedTasks.forEach(t => {
+            const d = t.DISCIPLINE || '';
+            map[d] = (map[d] || 0) + (t.DUREE || 0);
+        });
+        return map;
+    }, [selectedTasks]);
+
     const existingTeamsByDiscipline = useMemo(() => {
         const teams: Record<string, string[]> = {};
         scheduledTasks.forEach(task => {
@@ -218,6 +227,16 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 if (!teams[task.DISCIPLINE].includes(task["TYPE D'EQUIPE"])) {
                     teams[task.DISCIPLINE].push(task["TYPE D'EQUIPE"]);
                 }
+            }
+            if (task.isScheduled && task.DISCIPLINE && task.shiftAssignments) {
+                if (!teams[task.DISCIPLINE]) {
+                    teams[task.DISCIPLINE] = [];
+                }
+                task.shiftAssignments.forEach(shift => {
+                    if (shift.teamType && !teams[task.DISCIPLINE].includes(shift.teamType)) {
+                        teams[task.DISCIPLINE].push(shift.teamType);
+                    }
+                });
             }
         });
         // Sort the teams numerically if possible
@@ -576,6 +595,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 shiftStartTime={shiftStartTime}
                 shutdownStart={shutdownStart}
                 shutdownEnd={shutdownEnd}
+                requiredHoursPerDiscipline={requiredHoursPerDiscipline}
                 onSelectTeam={(discipline, teamType) => {
                     setTeamAssignments(prev => ({ ...prev, [discipline]: teamType }));
                     setAllTeamsStatusModalOpen(false);
@@ -589,7 +609,7 @@ export const SchedulingModal: React.FC<SchedulingModalProps> = ({
                 tasks={viewingTeamTasksData?.tasks || []}
             />
             <div
-                className="relative w-full max-w-2xl bg-[#080d1a] border border-white/[0.07] rounded-3xl shadow-[0_40px_100px_rgba(0,0,0,0.85)] my-4 flex flex-col max-h-[92vh]"
+                className="relative w-full max-w-6xl bg-[#080d1a] border border-white/[0.07] rounded-3xl shadow-[0_40px_100px_rgba(0,0,0,0.85)] my-4 flex flex-col max-h-[92vh]"
                 style={{ animation: 'modalIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards' }}
                 onClick={e => e.stopPropagation()}
             >

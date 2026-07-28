@@ -1,10 +1,10 @@
 
-
 import React, { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
 import LandingPage from './components/LandingPage';
 import LoadingScreen from './components/LoadingScreen';
 import Layout from './components/Layout';
 import { WhatIsPlanex, AboutUs, ContactUs, PrivacyPolicy, Disclaimer, GDPRCompliance, CopyrightNotice, PricingPage, VideoModal, VoirLaDemo, Ebook } from './components/InfoPages';
+import { computeTaskCosts, buildCostHubMap } from './services/schedulingService';
 import { LoginPage } from './components/auth/LoginPage';
 import { WelcomeBanner } from './components/auth/WelcomeBanner';
 import { retrieveUser, logoutUser, storeUser, loginUser, rehydrateUserFromSession } from './services/authService';
@@ -1319,13 +1319,36 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
               } as any);
             }}
             onUpdatePDR={(newPdr) => {
-              setSchedulingState(prev => prev ? { ...prev, pdrItems: newPdr } : {
-                tasks: [], pdrItems: newPdr, simopsRecords: [], costHubEntries: [], scaffoldingRecords: [], handlingRecords: [], permitRecords: [], mapTasks: [],
-                shutdownParams: { shutdownStart: new Date().toISOString().slice(0, 16), shutdownEnd: new Date(Date.now() + 86400000).toISOString().slice(0, 16), consignation: 0, deconsignation: 0, combustion: { mode: 'parallel', value: 0 }, workingHoursPerDay: 24 },
-                currentFile: new File([], "manual_data.xlsx"), filters: initialSchedulingFilters, dailyDurationLimit: 24
-              } as any);
+              const pdrMap = new Map<string, any[]>();
+              newPdr.forEach(p => {
+                const ot = String(p.OT || '').trim();
+                if (!pdrMap.has(ot)) pdrMap.set(ot, []);
+                pdrMap.get(ot)!.push(p);
+              });
+
+              const costHubMap = buildCostHubMap(schedulingState?.costHubEntries || []);
+              const linkData = (tasksToUpdate: any[]) => tasksToUpdate.map(t => {
+                const ot = String(t.ot || t.OT || '').trim();
+                const relevantRecords = ot === '' ? [] : (pdrMap.get(ot) || []);
+                const nt = { ...t, pdrItems: relevantRecords };
+                computeTaskCosts(nt, costHubMap);
+                return nt;
+              });
+
+              setSchedulingState(prev => {
+                const state = prev || {
+                  tasks: [], pdrItems: [], simopsRecords: [], costHubEntries: [], scaffoldingRecords: [], handlingRecords: [], permitRecords: [], mapTasks: [],
+                  shutdownParams: { shutdownStart: new Date().toISOString().slice(0, 16), shutdownEnd: new Date(Date.now() + 86400000).toISOString().slice(0, 16), consignation: 0, deconsignation: 0, combustion: { mode: 'parallel' as const, value: 0 }, workingHoursPerDay: 24 },
+                  currentFile: new File([], "manual_data.xlsx"), filters: initialSchedulingFilters, dailyDurationLimit: 24
+                };
+                return { ...state, pdrItems: newPdr, tasks: linkData(state.tasks) };
+              });
               if (schedulingResults) {
-                setSchedulingResults(prev => prev ? { ...prev, pdrItems: newPdr } : null);
+                setSchedulingResults(prev => prev ? {
+                  ...prev,
+                  pdrItems: newPdr,
+                  scheduledTasks: linkData(prev.scheduledTasks)
+                } : null);
               }
             }}
             onUpdateSimops={(newSimops) => {
@@ -1339,13 +1362,27 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
               }
             }}
             onUpdateCostHub={(newCost) => {
-              setSchedulingState(prev => prev ? { ...prev, costHubEntries: newCost } : {
-                tasks: [], costHubEntries: newCost, pdrItems: [], simopsRecords: [], scaffoldingRecords: [], handlingRecords: [], permitRecords: [], mapTasks: [],
-                shutdownParams: { shutdownStart: new Date().toISOString().slice(0, 16), shutdownEnd: new Date(Date.now() + 86400000).toISOString().slice(0, 16), consignation: 0, deconsignation: 0, combustion: { mode: 'parallel', value: 0 }, workingHoursPerDay: 24 },
-                currentFile: new File([], "manual_data.xlsx"), filters: initialSchedulingFilters, dailyDurationLimit: 24
-              } as any);
+              const costHubMap = buildCostHubMap(newCost);
+              const linkData = (tasksToUpdate: any[]) => tasksToUpdate.map(t => {
+                const nt = { ...t };
+                computeTaskCosts(nt, costHubMap);
+                return nt;
+              });
+
+              setSchedulingState(prev => {
+                const state = prev || {
+                  tasks: [], costHubEntries: [], pdrItems: [], simopsRecords: [], scaffoldingRecords: [], handlingRecords: [], permitRecords: [], mapTasks: [],
+                  shutdownParams: { shutdownStart: new Date().toISOString().slice(0, 16), shutdownEnd: new Date(Date.now() + 86400000).toISOString().slice(0, 16), consignation: 0, deconsignation: 0, combustion: { mode: 'parallel' as const, value: 0 }, workingHoursPerDay: 24 },
+                  currentFile: new File([], "manual_data.xlsx"), filters: initialSchedulingFilters, dailyDurationLimit: 24
+                };
+                return { ...state, costHubEntries: newCost, tasks: linkData(state.tasks) };
+              });
               if (schedulingResults) {
-                setSchedulingResults(prev => prev ? { ...prev, costHubEntries: newCost } : null);
+                setSchedulingResults(prev => prev ? { 
+                  ...prev, 
+                  costHubEntries: newCost,
+                  scheduledTasks: linkData(prev.scheduledTasks) 
+                } : null);
               }
             }}
             onUpdateScaffolding={(newScaff) => {
@@ -1356,16 +1393,20 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                 scaffMap.get(ot)!.push(s);
               });
 
+              const costHubMap = buildCostHubMap(schedulingState?.costHubEntries || []);
               const linkData = (tasksToUpdate: any[]) => tasksToUpdate.map(t => {
                 const ot = String(t.ot || t.OT || '').trim();
                 const relevantRecords = ot === '' ? [] : (scaffMap.get(ot) || []);
                 const hasScaff = relevantRecords.length > 0;
                 const isReady = hasScaff && relevantRecords.every(r => r.readiness === 1);
-                return {
+                const nt = {
                   ...t,
+                  scaffoldingRecords: relevantRecords,
                   'Scaffolding Required': hasScaff ? 1 : 0,
                   'Scaffolding Readiness': isReady ? 1 : 0
                 };
+                computeTaskCosts(nt, costHubMap);
+                return nt;
               });
 
               setSchedulingState(prev => {
@@ -1393,16 +1434,20 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                 handMap.get(ot)!.push(h);
               });
 
+              const costHubMap = buildCostHubMap(schedulingState?.costHubEntries || []);
               const linkData = (tasksToUpdate: any[]) => tasksToUpdate.map(t => {
                 const ot = String(t.ot || t.OT || '').trim();
                 const relevantRecords = ot === '' ? [] : (handMap.get(ot) || []);
                 const hasHand = relevantRecords.length > 0;
                 const isReady = hasHand && relevantRecords.every(r => r.readiness === 1);
-                return {
+                const nt = {
                   ...t,
+                  handlingRecords: relevantRecords,
                   'Handling required': hasHand ? 1 : 0,
                   'Handling Readiness': isReady ? 1 : 0
                 };
+                computeTaskCosts(nt, costHubMap);
+                return nt;
               });
 
               setSchedulingState(prev => {

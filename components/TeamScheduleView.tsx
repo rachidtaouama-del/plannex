@@ -62,6 +62,29 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
     const [detailModalData, setDetailModalData] = useState<TeamDetailData | null>(null);
     const [activeDashboardTab, setActiveDashboardTab] = useState<'workload' | 'tasks' | 'org' | 'histogram'>('workload');
 
+    const granularTasks: ScheduledTask[] = useMemo(() => {
+        return results.scheduledTasks.flatMap(task => {
+            if (task.shiftAssignments && task.shiftAssignments.length > 0) {
+                return task.shiftAssignments.map(shift => {
+                    const st = shift.startTime instanceof Date ? shift.startTime : new Date(shift.startTime);
+                    const et = shift.endTime instanceof Date ? shift.endTime : new Date(shift.endTime);
+                    const dur = shift.durationH;
+                    return {
+                        ...task,
+                        action: `${task.action} [S${shift.shiftIndex}]`,
+                        team: `${task.discipline} ${shift.teamType}`,
+                        duration: dur,
+                        manHours: dur * (shift.manpower || task.manpower || 1),
+                        manpower: shift.manpower || task.manpower || 1,
+                        startTime: st,
+                        endTime: et,
+                    };
+                });
+            }
+            return [task];
+        });
+    }, [results.scheduledTasks]);
+
     const handleShowGantt = (title: string, tasks: ScheduledTask[]) => {
         setGanttModalData({ title, tasks });
     };
@@ -79,7 +102,7 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
 
     const groupedData = useMemo(() => {
         const byDiscipline: Record<string, ScheduledTask[]> = {};
-        results.scheduledTasks.forEach(task => {
+        granularTasks.forEach(task => {
             const discipline = isColdStopFlow ? task.discipline : task.team;
             if (!byDiscipline[discipline]) byDiscipline[discipline] = [];
             byDiscipline[discipline].push(task);
@@ -112,9 +135,9 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
                     subTeams,
                 };
             });
-    }, [results, isColdStopFlow]);
+    }, [granularTasks, isColdStopFlow]);
 
-    // KPI 1: Workload distribution (H-H) per discipline
+    // KPI 1: Man-Hours Workload per Discipline
     const workloadData = useMemo(() => {
         return groupedData.map((d, i) => ({
             name: d.disciplineName,
@@ -126,14 +149,14 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
     // KPI 2: Number of tasks per discipline
     const taskCountData = useMemo(() => {
         const byDiscipline: Record<string, number> = {};
-        results.scheduledTasks.forEach(task => {
+        granularTasks.forEach(task => {
             const d = isColdStopFlow ? task.discipline : task.team;
             byDiscipline[d] = (byDiscipline[d] || 0) + 1;
         });
         return Object.entries(byDiscipline).map(([name, count], i) => ({
             name, count, color: DISCIPLINE_COLORS[i % DISCIPLINE_COLORS.length]
         })).sort((a, b) => b.count - a.count);
-    }, [results, isColdStopFlow]);
+    }, [granularTasks, isColdStopFlow]);
 
     // KPI 3: Organizational Structure
     const orgData = useMemo(() => {
@@ -167,11 +190,11 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
 
     // KPI 4: Daily Staff Histogram
     const dailyStaffHistogram = useMemo(() => {
-        if (results.scheduledTasks.length === 0) return { labels: [], data: [], disciplines: [] as string[] };
+        if (granularTasks.length === 0) return { labels: [], data: [], disciplines: [] as string[] };
         const projectStart = new Date(parameters.shutdownStart); projectStart.setHours(0, 0, 0, 0);
         const projectEnd = new Date(Math.max(new Date(parameters.shutdownEnd).getTime(), results.scheduleEndDate.getTime()));
         projectEnd.setHours(23, 59, 59, 999);
-        const disciplines = [...new Set(results.scheduledTasks.map(t => isColdStopFlow ? t.discipline : t.team))].sort();
+        const disciplines = [...new Set(granularTasks.map(t => isColdStopFlow ? t.discipline : t.team))].sort();
         const labels: string[] = [];
         const data: Record<string, number>[] = [];
         for (let d = new Date(projectStart); d <= projectEnd; d.setDate(d.getDate() + 1)) {
@@ -182,7 +205,7 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
             labels.push(dayKey);
             const dayData: Record<string, number> = {};
             disciplines.forEach(disc => {
-                const tasksOnDay = results.scheduledTasks.filter(t => {
+                const tasksOnDay = granularTasks.filter(t => {
                     const td = isColdStopFlow ? t.discipline : t.team;
                     return td === disc && t.startTime.getTime() < dayEndTs && t.endTime.getTime() > dayStart;
                 });
@@ -191,10 +214,10 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
             data.push(dayData);
         }
         return { labels, data, disciplines };
-    }, [results, parameters, isColdStopFlow]);
+    }, [granularTasks, results.scheduleEndDate, parameters, isColdStopFlow]);
 
     const dailyWorkloadChartData = useMemo(() => {
-        if (results.scheduledTasks.length === 0) return { labels: [] as string[], datasets: [] as { label: string; data: number[]; backgroundColor: string }[], maxLoad: 0 };
+        if (granularTasks.length === 0) return { labels: [] as string[], datasets: [] as { label: string; data: number[]; backgroundColor: string }[], maxLoad: 0 };
         const workload: Record<string, Record<string, number>> = {};
         const disciplines = new Set<string>();
         const projectStart = new Date(parameters.shutdownStart); projectStart.setHours(0, 0, 0, 0);
@@ -203,7 +226,7 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
         for (let d = new Date(projectStart); d <= projectEnd; d.setDate(d.getDate() + 1)) {
             workload[getLocalDateKey(d)] = {};
         }
-        results.scheduledTasks.forEach(task => {
+        granularTasks.forEach(task => {
             const discipline = isColdStopFlow ? task.discipline : task.team;
             disciplines.add(discipline);
             let current = new Date(task.startTime);
@@ -223,14 +246,14 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
         const datasets = sortedDisciplines.map((d, i) => ({ label: d, data: Object.values(workload).map(dayData => dayData[d] || 0), backgroundColor: DISCIPLINE_COLORS[i % DISCIPLINE_COLORS.length] }));
         const maxLoad = Math.max(...Object.values(workload).map(dayData => Object.values(dayData).reduce((s, v) => s + v, 0)));
         return { labels: Object.keys(workload), datasets, maxLoad: Math.max(10, maxLoad) };
-    }, [results, parameters, isColdStopFlow]);
+    }, [granularTasks, results.scheduleEndDate, parameters, isColdStopFlow]);
 
     useEffect(() => {
         if (dailyWorkloadChartData.labels.length > 0 && !selectedDate) setSelectedDate(dailyWorkloadChartData.labels[0]);
     }, [dailyWorkloadChartData.labels, selectedDate]);
 
     const dailyInspectorData = useMemo(() => {
-        if (results.scheduledTasks.length === 0) return [];
+        if (granularTasks.length === 0) return [];
         const projectStart = new Date(parameters.shutdownStart); projectStart.setHours(0, 0, 0, 0);
         const projectEnd = new Date(Math.max(new Date(parameters.shutdownEnd).getTime(), results.scheduleEndDate.getTime()));
         projectEnd.setHours(23, 59, 59, 999);
@@ -238,7 +261,7 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
         for (let d = new Date(projectStart); d <= projectEnd; d.setDate(d.getDate() + 1)) {
             const dayStart = new Date(d).getTime();
             const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999); const dayEndTs = dayEnd.getTime();
-            const tasksOnDay = results.scheduledTasks.filter(task => task.startTime.getTime() < dayEndTs && task.endTime.getTime() > dayStart);
+            const tasksOnDay = granularTasks.filter(task => task.startTime.getTime() < dayEndTs && task.endTime.getTime() > dayStart);
             if (tasksOnDay.length === 0) continue;
             const byDiscipline: Record<string, ScheduledTask[]> = {};
             tasksOnDay.forEach(task => { const discipline = isColdStopFlow ? task.discipline : task.team; if (!byDiscipline[discipline]) byDiscipline[discipline] = []; byDiscipline[discipline].push(task); });
@@ -257,7 +280,7 @@ const TeamScheduleView: React.FC<TeamScheduleViewProps> = ({ results, onBack, pa
             dailyData.push({ date: new Date(d), data: dayInspectorData });
         }
         return dailyData;
-    }, [results, parameters, isColdStopFlow, dailyDurationLimit]);
+    }, [granularTasks, results.scheduleEndDate, parameters, isColdStopFlow, dailyDurationLimit]);
 
     const handleOpenDetailModal = (date: Date, disciplineData: typeof dailyInspectorData[0]['data'][0]) => {
         const dayStart = new Date(date).getTime();

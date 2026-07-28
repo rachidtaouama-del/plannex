@@ -1930,6 +1930,8 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                         isKeyEvent: false,
                         predecessor: [],
                         multiDisciplineId: undefined,
+                        mode: undefined,
+                        shiftAssignments: undefined,
                     };
                     const originalIndex = currentTasks.findIndex(t => t.id === originalTask.id);
                     additions.push({ index: originalIndex !== -1 ? originalIndex + 1 : currentTasks.length, task: newTask });
@@ -2537,6 +2539,8 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                     predecessor: [],
                     DAY: null,
                     sequenceOrder: null,
+                    mode: undefined,
+                    shiftAssignments: undefined,
                 };
                 return newTask;
             });
@@ -2831,10 +2835,13 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                         if (taskIndex !== -1) {
                             const { name, number } = teamAssignmentsByName[discipline];
 
-                            // Build shiftAssignments for this task if provided
+                            // Build shiftAssignments for this task if provided, enforcing task's own EFFECTIF
                             const taskShifts = constraints.shiftBlocks?.filter(
                                 s => s.shiftIndex > 0
-                            ) || undefined;
+                            ).map(s => ({
+                                ...s,
+                                manpower: task.EFFECTIF || 1
+                            })) || undefined;
 
                             newTasks[taskIndex] = {
                                 ...newTasks[taskIndex],
@@ -3048,7 +3055,9 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                             'TYPE D\'EQUIPE': null,
                             'EQUIPE NUMBER': null,
                             'MAX HOUR': null,
-                            isKeyEvent: false
+                            isKeyEvent: false,
+                            mode: undefined,
+                            shiftAssignments: undefined
                         };
                     }
                     return task;
@@ -3071,7 +3080,9 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                             'TYPE D\'EQUIPE': null,
                             'EQUIPE NUMBER': null,
                             'MAX HOUR': null,
-                            isKeyEvent: false
+                            isKeyEvent: false,
+                            mode: undefined,
+                            shiftAssignments: undefined
                         };
                     }
                     return task;
@@ -3171,7 +3182,9 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                     'TYPE D\'EQUIPE': null,
                     'EQUIPE NUMBER': null,
                     'MAX HOUR': null,
-                    isKeyEvent: false
+                    isKeyEvent: false,
+                    mode: undefined,
+                    shiftAssignments: undefined
                 };
             });
         });
@@ -3305,39 +3318,62 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
         if (!shutdownParams) return;
         const scheduledTasksForResults: ScheduledTask[] = tasks
             .filter(t => t.isScheduled && t['START DATE'] && t['END DATE'])
-            .map(t => ({
-                id: t.id,
-                action: t['GLOBAL TASKS'],
-                team: `${t.DISCIPLINE} ${t["TYPE D'EQUIPE"]}`,
-                discipline: t.DISCIPLINE,
-                equipment: t['Nom Equipement'],
-                family: t.FAMILLE,
-                duration: t.DUREE,
-                manHours: t['Heures-Homme'] > 0 ? t['Heures-Homme'] : t.DUREE * t.EFFECTIF,
-                manpower: t.EFFECTIF,
-                predecessor: t.predecessor || null,
-                predecessorActions: (t.predecessor || []).map(pId => tasks.find(pt => pt.id === pId)?.['GLOBAL TASKS'] || ''),
-                hasDeconsignationSuccessor: false,
-                imperativeStart: false,
-                startTime: t['START DATE'] as Date,
-                endTime: t['END DATE'] as Date,
-                isLate: false,
-                ot: String(t.OT),
-                avis: String(t.AVIS),
-                isHighRisk: String(t['COMMENTAIRE HSE']) === '1' || t.THR === 1,
-                'Scaffolding Required': t['Scaffolding Required'],
-                'Handling required': t['Handling required'],
-                permisTravailHauteur: t.permisTravailHauteur,
-                permisFeu: t.permisFeu,
-                permisPenetration: t.permisPenetration,
-                permisLevage: t.permisLevage,
-                permisExcavation: t.permisExcavation,
-                preparatifs: t.Préparatifs || '',
-                isKeyEvent: t.isKeyEvent,
-                maintenanceType: t['Type de Maintenance'],
-                multiDisciplineId: t.multiDisciplineId,
-                sequenceOrder: t.sequenceOrder,
-            }));
+            .map(t => {
+                let teamLabel = `${t.DISCIPLINE} ${t["TYPE D'EQUIPE"]}`;
+                let startTime = t['START DATE'] as Date;
+                let endTime = t['END DATE'] as Date;
+                let formattedShifts: ScheduledTask['shiftAssignments'] = undefined;
+
+                if (t.shiftAssignments && t.shiftAssignments.length > 0) {
+                    const uniqueTeams = Array.from(new Set(t.shiftAssignments.map(s => s.teamType))).join(' / ');
+                    teamLabel = `${t.DISCIPLINE} — Rotation (${uniqueTeams})`;
+                    startTime = new Date(Math.min(...t.shiftAssignments.map(s => (s.startTime instanceof Date ? s.startTime : new Date(s.startTime)).getTime())));
+                    endTime = new Date(Math.max(...t.shiftAssignments.map(s => (s.endTime instanceof Date ? s.endTime : new Date(s.endTime)).getTime())));
+                    formattedShifts = t.shiftAssignments.map(s => ({
+                        shiftIndex: s.shiftIndex,
+                        teamType: s.teamType,
+                        startTime: s.startTime instanceof Date ? s.startTime : new Date(s.startTime),
+                        endTime: s.endTime instanceof Date ? s.endTime : new Date(s.endTime),
+                        durationH: s.durationH,
+                        manpower: s.manpower || t.EFFECTIF || 1,
+                    }));
+                }
+
+                return {
+                    id: t.id,
+                    action: t['GLOBAL TASKS'],
+                    team: teamLabel,
+                    discipline: t.DISCIPLINE,
+                    equipment: t['Nom Equipement'],
+                    family: t.FAMILLE,
+                    duration: t.DUREE,
+                    manHours: t['Heures-Homme'] > 0 ? t['Heures-Homme'] : t.DUREE * t.EFFECTIF,
+                    manpower: t.EFFECTIF,
+                    predecessor: t.predecessor || null,
+                    predecessorActions: (t.predecessor || []).map(pId => tasks.find(pt => pt.id === pId)?.['GLOBAL TASKS'] || ''),
+                    hasDeconsignationSuccessor: false,
+                    imperativeStart: false,
+                    startTime: startTime,
+                    endTime: endTime,
+                    isLate: false,
+                    ot: String(t.OT),
+                    avis: String(t.AVIS),
+                    isHighRisk: String(t['COMMENTAIRE HSE']) === '1' || t.THR === 1,
+                    'Scaffolding Required': t['Scaffolding Required'],
+                    'Handling required': t['Handling required'],
+                    permisTravailHauteur: t.permisTravailHauteur,
+                    permisFeu: t.permisFeu,
+                    permisPenetration: t.permisPenetration,
+                    permisLevage: t.permisLevage,
+                    permisExcavation: t.permisExcavation,
+                    preparatifs: t.Préparatifs || '',
+                    isKeyEvent: t.isKeyEvent,
+                    maintenanceType: t['Type de Maintenance'],
+                    multiDisciplineId: t.multiDisciplineId,
+                    sequenceOrder: t.sequenceOrder,
+                    shiftAssignments: formattedShifts,
+                };
+            });
 
         const scheduleEndDate = scheduledTasksForResults.length > 0 ? new Date(Math.max(0, ...scheduledTasksForResults.map(t => t.endTime.getTime()))) : new Date(shutdownParams.shutdownStart);
         const scheduleStartDate = scheduledTasksForResults.length > 0 ? new Date(Math.min(...scheduledTasksForResults.map(t => t.startTime.getTime()))) : new Date(shutdownParams.shutdownStart);
@@ -3348,8 +3384,18 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
         const events: { time: number; type: 'start' | 'end'; discipline: string; manpower: number; }[] = [];
         scheduledTasksForResults.forEach(task => {
             const discipline = task.discipline || '';
-            events.push({ time: task.startTime.getTime(), type: 'start', discipline, manpower: task.manpower });
-            events.push({ time: task.endTime.getTime(), type: 'end', discipline, manpower: task.manpower });
+            if (task.shiftAssignments && task.shiftAssignments.length > 0) {
+                task.shiftAssignments.forEach(s => {
+                    const st = s.startTime instanceof Date ? s.startTime : new Date(s.startTime);
+                    const et = s.endTime instanceof Date ? s.endTime : new Date(s.endTime);
+                    const mp = s.manpower || task.manpower || 1;
+                    events.push({ time: st.getTime(), type: 'start', discipline, manpower: mp });
+                    events.push({ time: et.getTime(), type: 'end', discipline, manpower: mp });
+                });
+            } else {
+                events.push({ time: task.startTime.getTime(), type: 'start', discipline, manpower: task.manpower });
+                events.push({ time: task.endTime.getTime(), type: 'end', discipline, manpower: task.manpower });
+            }
         });
 
         const peakResources: Record<string, number> = {};
@@ -4403,26 +4449,56 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                                         </button>
                                                     </td>
                                                     <td className="px-4 py-1.5 sticky left-24 bg-inherit z-10 border-r border-white/5 shadow-[2px_0_10px_rgba(0,0,0,0.2)] transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <button
-                                                                onClick={() => handleOpenEditModal(task)}
-                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all shadow-lg active:scale-90"
-                                                                title="Éditer la mission"
-                                                            >
-                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                            </button>
-                                                            {(task.isScheduled || getTaskSuccessorsRecursive(task.id).some(s => s.isScheduled)) && (
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2 min-w-0">
                                                                 <button
-                                                                    onClick={() => handleDelier(task.id)}
-                                                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-90"
-                                                                    title="Rompre les liens"
+                                                                    onClick={() => handleOpenEditModal(task)}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all shadow-lg active:scale-90"
+                                                                    title="Éditer la mission"
                                                                 >
-                                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                                 </button>
-                                                            )}
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">ID-{task.id}</span>
-                                                                <span className="text-[10px] font-mono font-bold text-slate-400 truncate">{String(task.DISCIPLINE || '').slice(0, 3)}-{String(task.OT || '').slice(-4)}</span>
+                                                                {(task.isScheduled || getTaskSuccessorsRecursive(task.id).some(s => s.isScheduled)) && (
+                                                                    <button
+                                                                        onClick={() => handleDelier(task.id)}
+                                                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-90"
+                                                                        title="Rompre les liens"
+                                                                    >
+                                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                                                    </button>
+                                                                )}
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">ID-{task.id}</span>
+                                                                    <span className="text-[10px] font-mono font-bold text-slate-400 truncate">{String(task.DISCIPLINE || '').slice(0, 3)}-{String(task.OT || '').slice(-4)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-col items-center gap-1 shrink-0">
+                                                                {(() => {
+                                                                    const is24H = task.isScheduled && task.mode === '24H';
+                                                                    return (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); handleToggleMode(task.id); }}
+                                                                                title={is24H ? 'Mode 24H — cliquer pour passer en SHIFT' : 'Mode SHIFT — cliquer pour passer en 24H'}
+                                                                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all duration-200 border ${
+                                                                                    is24H
+                                                                                        ? 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
+                                                                                        : 'bg-sky-500/10 border-sky-500/20 text-sky-500 hover:bg-sky-500/20'
+                                                                                }`}
+                                                                            >
+                                                                                {is24H ? '24H' : 'SHIFT'}
+                                                                            </button>
+                                                                            {task.isScheduled && task.shiftAssignments && task.shiftAssignments.length > 0 && (
+                                                                                <span
+                                                                                    className="text-[7px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1 py-0.5 rounded whitespace-nowrap"
+                                                                                    title={`Rotation: ${task.shiftAssignments.map(s => `S${s.shiftIndex}→${s.teamType}`).join(', ')}`}
+                                                                                >
+                                                                                    🔄 {task.shiftAssignments.length}×
+                                                                                </span>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -4433,30 +4509,6 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                                         >
                                                             <svg width="18" height="18" viewBox="0 0 24 24" fill={task.isKeyEvent ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
                                                         </button>
-                                                    </td>
-                                                    {/* MODE toggle cell */}
-                                                    <td className="px-2 py-1.5 text-center border-r border-white/[0.02]">
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <button
-                                                                onClick={() => handleToggleMode(task.id)}
-                                                                title={task.mode === '24H' ? 'Mode 24H — cliquer pour passer en SHIFT' : 'Mode SHIFT — cliquer pour passer en 24H'}
-                                                                className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all duration-200 border ${
-                                                                    task.mode === '24H'
-                                                                        ? 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
-                                                                        : 'bg-sky-500/10 border-sky-500/20 text-sky-500 hover:bg-sky-500/20'
-                                                                }`}
-                                                            >
-                                                                {task.mode === '24H' ? '24H' : 'SHIFT'}
-                                                            </button>
-                                                            {task.shiftAssignments && task.shiftAssignments.length > 0 && (
-                                                                <span
-                                                                    className="text-[8px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded-md whitespace-nowrap"
-                                                                    title={`Rotation: ${task.shiftAssignments.map(s => `S${s.shiftIndex}→${s.teamType}`).join(', ')}`}
-                                                                >
-                                                                    🔄 {task.shiftAssignments.length}×
-                                                                </span>
-                                                            )}
-                                                        </div>
                                                     </td>
 
                                                     {/* Dynamic Cell Rendering */}

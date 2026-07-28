@@ -118,6 +118,7 @@ export interface SchedulingTaskData extends Record<string, any> {
   "MANUAL PRICE"?: number;
   "Scaffolding manual Price"?: number;
   "Handling manual Price"?: number;
+  isLeadTaskForOT?: boolean;
   "PDR COST"?: number;
   "TOTAL TASK COST"?: number;
 
@@ -296,6 +297,14 @@ export interface ScheduledTask extends Task {
   startTime: Date;
   endTime: Date;
   isLate: boolean;
+  shiftAssignments?: Array<{
+    shiftIndex: number;
+    teamType: string;
+    startTime: Date | string;
+    endTime: Date | string;
+    durationH: number;
+    manpower?: number;
+  }>;
 }
 
 export interface CombustionParams {

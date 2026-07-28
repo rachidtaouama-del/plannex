@@ -12,6 +12,17 @@ interface TaskSelectorProps {
     initialFamily?: string;
 }
 
+const fmtDateTime = (d: Date | string | null | undefined) => {
+    if (!d) return '';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const da = String(date.getDate()).padStart(2, '0');
+    const mo = String(date.getMonth() + 1).padStart(2, '0');
+    const hr = String(date.getHours()).padStart(2, '0');
+    const mn = String(date.getMinutes()).padStart(2, '0');
+    return `${da}/${mo} ${hr}:${mn}`;
+};
+
 export const TaskSelector: React.FC<TaskSelectorProps> = ({ tasks, selectedIds, onChange, placeholder, singleSelection = false, initialDiscipline, initialFamily }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [filters, setFilters] = useState({
@@ -159,7 +170,19 @@ export const TaskSelector: React.FC<TaskSelectorProps> = ({ tasks, selectedIds, 
                                             </div>
                                         </div>
                                     </div>
-                                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>}
+                                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                                        {task['START DATE'] && task['END DATE'] ? (
+                                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/25 px-2 py-1 rounded-lg text-[10px] font-mono text-emerald-300 font-bold whitespace-nowrap shadow-sm">
+                                                <span>📅</span>
+                                                <span>{fmtDateTime(task['START DATE'])} → {fmtDateTime(task['END DATE'])}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[10px] font-mono text-slate-500 whitespace-nowrap">
+                                                ⏱️ {task.DUREE ? `${task.DUREE.toFixed(1)}h` : 'Non planifiée'}
+                                            </div>
+                                        )}
+                                        {isSelected && <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>}
+                                    </div>
                                 </li>
                             );
                         })}

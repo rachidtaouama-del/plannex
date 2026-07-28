@@ -518,7 +518,16 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ tasks, shutd
     const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
     const scheduled = tasks.filter(t => t.isScheduled && t['START DATE'] && t['END DATE']);
-    const uniqueTeams = new Set(scheduled.map(t => `${t.DISCIPLINE} ${t["TYPE D'EQUIPE"]}`).filter(t => t.trim() !== ''));
+    const uniqueTeams = new Set<string>();
+    scheduled.forEach(t => {
+      if (t.shiftAssignments && t.shiftAssignments.length > 0) {
+        t.shiftAssignments.forEach(s => {
+          if (s.teamType) uniqueTeams.add(`${t.DISCIPLINE} ${s.teamType}`);
+        });
+      } else if (t["TYPE D'EQUIPE"] && t["TYPE D'EQUIPE"].trim() !== '') {
+        uniqueTeams.add(`${t.DISCIPLINE} ${t["TYPE D'EQUIPE"]}`);
+      }
+    });
 
     const pinnedTasks = tasks.filter(task => task.isKeyEvent === true);
     const totalPinnedDuration = pinnedTasks.reduce((sum, task) => sum + task.DUREE, 0);
@@ -537,7 +546,11 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ tasks, shutd
       if (t.isScheduled && t['START DATE'] && t['END DATE']) {
         stats[discipline].scheduledTasks++;
       }
-      if (t["TYPE D'EQUIPE"]) {
+      if (t.shiftAssignments && t.shiftAssignments.length > 0) {
+        t.shiftAssignments.forEach(s => {
+          if (s.teamType) stats[discipline].teams.add(s.teamType);
+        });
+      } else if (t["TYPE D'EQUIPE"]) {
         stats[discipline].teams.add(t["TYPE D'EQUIPE"]);
       }
     });

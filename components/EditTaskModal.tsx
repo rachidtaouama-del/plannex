@@ -184,14 +184,25 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, o
                 return; // Validation: all disciplines must be filled
             }
             const multiDisciplineId = (formData as any).multiDisciplineId || crypto.randomUUID();
-            const updatedTasks: SchedulingTaskData[] = multiDisciplineData.map((item, idx) => ({
-                ...(formData as SchedulingTaskData),
-                id: idx === 0 ? (formData.id as number) : -1, // Keep original id for first, -1 for new ones
-                DISCIPLINE: item.discipline,
-                EFFECTIF: item.effectif,
-                'Heures-Homme': parseFloat(((formData.DUREE || 0) * item.effectif).toFixed(2)),
-                multiDisciplineId,
-            }));
+            const updatedTasks: SchedulingTaskData[] = multiDisciplineData.map((item, idx) => {
+                const newEffectif = item.effectif;
+                let updatedShifts = (formData as SchedulingTaskData).shiftAssignments;
+                if (updatedShifts && updatedShifts.length > 0) {
+                    updatedShifts = updatedShifts.map(s => ({
+                        ...s,
+                        manpower: newEffectif
+                    }));
+                }
+                return {
+                    ...(formData as SchedulingTaskData),
+                    id: idx === 0 ? (formData.id as number) : -1, // Keep original id for first, -1 for new ones
+                    DISCIPLINE: item.discipline,
+                    EFFECTIF: newEffectif,
+                    'Heures-Homme': parseFloat(((formData.DUREE || 0) * newEffectif).toFixed(2)),
+                    multiDisciplineId,
+                    ...(updatedShifts ? { shiftAssignments: updatedShifts } : {})
+                };
+            });
             onSave(updatedTasks);
         }
     };
