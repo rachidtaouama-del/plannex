@@ -211,7 +211,9 @@ import type {
   CustomCriticalPath,
   UserAccount,
   HotReviewState,
-  SchedulingFilters
+  SchedulingFilters,
+  SchedulingTaskData,
+  CostHubEntry
 } from './types';
 
 // Helper to convert a Date object to a 'yyyy-MM-ddTHH:mm' string suitable for datetime-local inputs
@@ -823,6 +825,14 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     setActivePage('planner');
   }, []);
 
+  const handleAddExtraTask = useCallback((task: any) => {
+    // Only store extra tasks in schedulingState (raw data).
+    // Do NOT inject into schedulingResults.scheduledTasks — extra tasks
+    // must NOT appear in the Gantt chart or KPI engine, which would crash
+    // because the raw task fields don't match the ScheduledTask shape.
+    setSchedulingState(prev => prev ? { ...prev, tasks: [...prev.tasks, task] } : null);
+  }, []);
+
   // Stable save handler for HotExecutionReview
   const handleSaveProjectStable = useCallback(() => handleManualSave(false), [handleManualSave]);
 
@@ -928,7 +938,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       case 'planner':
         return renderPlannerPage();
       case 'hot_execution_review':
-        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={handleBackToPlannerDashboard} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={handleSaveProjectStable} hasUnsavedChanges={hasUnsavedChanges} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={handleBackToPlannerDashboard} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={handleSaveProjectStable} hasUnsavedChanges={hasUnsavedChanges} onAddExtraTask={handleAddExtraTask} costHubEntries={schedulingState?.costHubEntries || []} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'what_if_scenario':
         return isAuthenticated && schedulingResults ? (
           <WhatIfScenarioPage
@@ -990,7 +1000,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                       const evalData = localEvalData || cloudPayload.evalData || null;
                       saved = { results, params: cloudPayload.params, evalData, schedulingState: cloudSchedulingState };
                       // Resync the local cache
-                      saveProjectSession(project.id, results, cloudPayload.params, evalData, cloudSchedulingState);
+                      saveProjectSession(project.id, results, cloudPayload.params, cloudSchedulingState);
                     } else if (cloudPayload.schedulingState) {
                       // IN-PROGRESS draft — restore and rehydrate task dates
                       cloudDraft = rehydrateDraftDates(cloudPayload.schedulingState);

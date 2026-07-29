@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
     Filter, Zap, Users, Layers, Settings, TrendingUp, Clock,
     ChevronRight, Briefcase, Target, Package,
-    Truck, BookOpen, Search, Activity, RotateCcw, Eye, Tag, BarChart2
+    Truck, BookOpen, Search, Activity, RotateCcw, Eye, Tag, BarChart2, AlertTriangle
 } from 'lucide-react';
 import {
     ResponsiveContainer,
@@ -11,6 +11,7 @@ import {
     ComposedChart, Line, Area,
 } from 'recharts';
 import type { SchedulingTaskData, CompanyCost, EvaluationData } from '../types';
+import { ExtraTaskAnalyticsModal } from './ExtraTaskAnalyticsModal';
 
 interface CostControlPageProps { tasks: SchedulingTaskData[]; costData: CompanyCost[]; evaluationData?: EvaluationData | null; onBack: () => void; }
 
@@ -207,6 +208,9 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
     const [famSearch, setFamSearch] = useState('');
     const [dPivot, setDPivot] = useState<'mo' | 'pr'>('mo');
     const [scRes, setScRes] = useState<'1H' | '6H' | '12H' | '1D' | '1W' | '1M' | '1Y'>('1W');
+    
+    const [isExtraTaskModalOpen, setIsExtraTaskModalOpen] = useState(false);
+    const extraTasks = useMemo(() => tasks.filter(t => t.isExtraTask), [tasks]);
 
     // ── S-Curve computation ──────────────────────────────────────────────────
     const scurveData = useMemo(() => {
@@ -437,6 +441,31 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
             </div>
 
             <div className="w-full mx-auto px-6 lg:px-12 2xl:px-24 py-10 space-y-10">
+
+                {/* ══════════════════════════════════════════════════════════
+                    EXTRA TASKS IMPACT NOTIFICATION
+                ══════════════════════════════════════════════════════════ */}
+                {extraTasks.length > 0 && (
+                    <div className="bg-red-950/40 border border-red-500/20 rounded-[1.75rem] overflow-hidden shadow-2xl shadow-red-900/20 relative group cursor-pointer anim-1" onClick={() => setIsExtraTaskModalOpen(true)}>
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
+                        <div className="px-8 py-6 flex items-center justify-between">
+                            <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-lg shadow-red-900/20">
+                                    <AlertTriangle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-white tracking-tight uppercase">Impact Budgétaire Extra</h2>
+                                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mt-1">
+                                        Surcoût détecté : <span className="text-white font-black">{fmt(extraTasks.reduce((sum, t) => sum + (t['TOTAL TASK COST'] || 0), 0))}</span> ({extraTasks.length} Tâches Supplémentaires)
+                                    </p>
+                                </div>
+                            </div>
+                            <button className="flex items-center gap-2 px-6 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-red-500/20">
+                                <Eye className="w-4 h-4" /> Voir Détails Analytiques
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* ══════════════════════════════════════════════════════════
                     BUDGET S-CURVE — Planned vs Executed
@@ -832,6 +861,12 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
                     </div>
                 </div>
             </div>
+            
+            <ExtraTaskAnalyticsModal 
+                isOpen={isExtraTaskModalOpen} 
+                onClose={() => setIsExtraTaskModalOpen(false)} 
+                extraTasks={extraTasks} 
+            />
         </div>
     );
 }

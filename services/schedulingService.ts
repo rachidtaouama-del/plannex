@@ -84,39 +84,67 @@ export const computeTaskCosts = (
     task: SchedulingTaskData,
     costHubMap: Map<string, CostHubEntry>
 ): void => {
-    const company = String(task.COMPANY || '').trim();
-    const posteNumber = task['POSTE NUMBER'] ?? '';
-    const qty = parseLocaleNumber(task.QT);
-    const hh = parseLocaleNumber(task['Heures-Homme']);
-    const additionalCost = parseLocaleNumber(task['Additional Cost']);
+    // Check if task has multiple subcontractors (e.g. Extra Tasks or Add Task Modal)
+    if (task.subcontractors && task.subcontractors.length > 0) {
+        let totalMOHHCost = 0;
+        let totalPrestationCost = 0;
+        
+        task.subcontractors.forEach(sub => {
+            const entry = costHubLookup(costHubMap, sub.company, sub.posteNumber);
+            const pU = entry?.priceU || 0;
+            const cType = String(entry?.costType || '').toUpperCase().trim() || sub.costType || 'HH';
+            sub.costType = cType as 'HH' | 'QT';
+            
+            const baseQ = sub.qty || 0;
+            const subCost = (baseQ * pU) + (sub.additionalCost || 0);
+            sub.totalPrice = subCost;
 
-    // Look up the Cost Hub entry for this task
-    const hubEntry = costHubLookup(costHubMap, company, posteNumber);
-    const priceU = hubEntry?.priceU || parseLocaleNumber(task['PRICE FOR HH']) || parseLocaleNumber(task['MANUAL PRICE']) || 0;
-    const costType = String(hubEntry?.costType || '').toUpperCase().trim();
-    task['POSTE DESCRIPTION'] = hubEntry?.posteDescription ?? String(task['POSTE DESCRIPTION'] || '');
-    
-    // Infer cost type if missing from Cost Hub
-    let finalCostType = costType;
-    if (!finalCostType) {
-        if (hh > 0 && qty === 0) finalCostType = 'HH';
-        else finalCostType = 'QT';
-    }
-    // Store cost type on task for display in CostControlPage
-    task['COST_TYPE'] = finalCostType;
+            if (cType === 'HH') {
+                totalMOHHCost += subCost;
+            } else {
+                totalPrestationCost += subCost;
+            }
+        });
 
-    // Task M.O cost: if Cost Type = 'HH' → use Heures-Homme × Price U, else QT × Price U
-    const baseQuantity = finalCostType === 'HH' ? hh : qty;
-    const taskCost = (baseQuantity * priceU) + additionalCost;
-    task['TASK_COST'] = taskCost;
-
-    // Phase 6: Granular separation
-    if (finalCostType === 'HH') {
-        task['MO_HH_COST'] = taskCost;
-        task['PRESTATION_COST'] = 0;
+        task['MO_HH_COST'] = totalMOHHCost;
+        task['PRESTATION_COST'] = totalPrestationCost;
+        task['TASK_COST'] = totalMOHHCost + totalPrestationCost;
+        task['COST_TYPE'] = 'MULTI'; // Mark as multi-subcontractor
     } else {
-        task['MO_HH_COST'] = 0;
-        task['PRESTATION_COST'] = taskCost;
+        const company = String(task.COMPANY || '').trim();
+        const posteNumber = task['POSTE NUMBER'] ?? '';
+        const qty = parseLocaleNumber(task.QT);
+        const hh = parseLocaleNumber(task['Heures-Homme']);
+        const additionalCost = parseLocaleNumber(task['Additional Cost']);
+
+        // Look up the Cost Hub entry for this task
+        const hubEntry = costHubLookup(costHubMap, company, posteNumber);
+        const priceU = hubEntry?.priceU || parseLocaleNumber(task['PRICE FOR HH']) || parseLocaleNumber(task['MANUAL PRICE']) || 0;
+        const costType = String(hubEntry?.costType || '').toUpperCase().trim();
+        task['POSTE DESCRIPTION'] = hubEntry?.posteDescription ?? String(task['POSTE DESCRIPTION'] || '');
+        
+        // Infer cost type if missing from Cost Hub
+        let finalCostType = costType;
+        if (!finalCostType) {
+            if (hh > 0 && qty === 0) finalCostType = 'HH';
+            else finalCostType = 'QT';
+        }
+        // Store cost type on task for display in CostControlPage
+        task['COST_TYPE'] = finalCostType;
+
+        // Task M.O cost: if Cost Type = 'HH' → use Heures-Homme × Price U, else QT × Price U
+        const baseQuantity = finalCostType === 'HH' ? hh : qty;
+        const taskCost = (baseQuantity * priceU) + additionalCost;
+        task['TASK_COST'] = taskCost;
+
+        // Phase 6: Granular separation
+        if (finalCostType === 'HH') {
+            task['MO_HH_COST'] = taskCost;
+            task['PRESTATION_COST'] = 0;
+        } else {
+            task['MO_HH_COST'] = 0;
+            task['PRESTATION_COST'] = taskCost;
+        }
     }
 
     // Scaffolding cost — calculated strictly from Cost Hub or fallback to manual price
@@ -159,7 +187,7 @@ export const computeTaskCosts = (
     task['PDR COST'] = pdrCost;
 
     // Grand Total = Task M.O + Scaffolding + Handling + PDR
-    task['TOTAL_COST'] = taskCost + scaffoldingCost + handlingCost + pdrCost;
+    task['TOTAL_COST'] = (task['TASK_COST'] || 0) + scaffoldingCost + handlingCost + pdrCost;
     task['TOTAL TASK COST'] = task['TOTAL_COST'];
 };
 

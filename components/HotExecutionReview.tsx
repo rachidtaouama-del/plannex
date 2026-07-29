@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
-// FIX: Import EvaluationKpis type.
-import type { CalculationResults, AppParameters, ScheduledTask, HotReviewState, SupplementaryTask, TeamDetail, SortableHotReviewKeys, EvaluationData, EvaluatedTaskData, SlippageDetails, TaskStatus, EventDetail, EvaluationKpis, OngoingProgress } from '../types';
+import type { CalculationResults, AppParameters, ScheduledTask, HotReviewState, SupplementaryTask, TeamDetail, SortableHotReviewKeys, EvaluationData, EvaluatedTaskData, SlippageDetails, TaskStatus, EventDetail, EvaluationKpis, OngoingProgress, SchedulingTaskData, CostHubEntry } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ProfessionalGanttChart } from './ProfessionalGanttChart';
@@ -9,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import { ImpactAnalysisModal } from './ImpactAnalysisModal';
 import { SuccessorsModal } from './SuccessorsModal';
 import { AddTaskOutsideRangeModal } from './AddTaskOutsideRangeModal';
+import { ExtraTaskModal } from './ExtraTaskModal';
 import { exportHotReviewToPDF } from '../services/hotReviewPdfExportService';
 import {
     LineChart,
@@ -47,6 +47,8 @@ interface HotExecutionReviewProps {
     evaluationKpis: EvaluationKpis;
     onSaveProject?: () => void;
     hasUnsavedChanges?: boolean;
+    onAddExtraTask?: (task: SchedulingTaskData) => void;
+    costHubEntries?: CostHubEntry[];
 }
 
 const toDateTimeLocalModal = (date: Date): string => {
@@ -348,332 +350,6 @@ const SlippageModal: React.FC<{
     );
 };
 
-const SupplementaryTaskModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (task: SupplementaryTask) => void;
-    taskToEdit: SupplementaryTask | null;
-    initialStartDate?: string;
-    initialEndDate?: string;
-    availableTeams?: string[];
-}> = ({ isOpen, onClose, onSave, taskToEdit, initialStartDate, initialEndDate, availableTeams = [] }) => {
-    const isEditing = !!taskToEdit;
-    const [action, setAction] = useState('');
-    const [equipment, setEquipment] = useState('');
-    const [maintenanceType, setMaintenanceType] = useState<'Préventive' | 'Corrective'>('Corrective');
-    const [teamDetails, setTeamDetails] = useState<TeamDetail[]>([]);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-
-    const duration = useMemo(() => {
-        if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return 0;
-        return (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    }, [startDate, endDate]);
-
-    useEffect(() => {
-        setTeamDetails(currentDetails =>
-            currentDetails.map(detail => ({
-                ...detail,
-                duration: duration,
-                manHours: detail.manpower * duration,
-            }))
-        );
-    }, [duration]);
-
-    useEffect(() => {
-        if (isOpen) {
-            if (isEditing && taskToEdit) {
-                setAction(taskToEdit.action);
-                setEquipment(taskToEdit.equipment);
-                setMaintenanceType(taskToEdit.maintenanceType);
-                setStartDate(taskToEdit.startDate);
-                setEndDate(taskToEdit.endDate);
-                setTeamDetails(taskToEdit.teamDetails);
-            } else {
-                setAction('');
-                setEquipment('');
-                setMaintenanceType('Corrective');
-                setStartDate(initialStartDate || '');
-                setEndDate(initialEndDate || '');
-                setTeamDetails([]);
-            }
-        }
-    }, [isOpen, isEditing, taskToEdit, initialStartDate, initialEndDate]);
-
-    const handleTeamDetailChange = (index: number, field: 'team' | 'manpower', value: string | number) => {
-        setTeamDetails(currentDetails =>
-            currentDetails.map((detail, i) => {
-                if (i === index) {
-                    const updatedDetail = { ...detail };
-                    if (field === 'team') {
-                        updatedDetail.team = value as string;
-                    } else { // manpower
-                        updatedDetail.manpower = Number(value) || 0;
-                    }
-                    updatedDetail.duration = duration;
-                    updatedDetail.manHours = updatedDetail.manpower * duration;
-                    return updatedDetail;
-                }
-                return detail;
-            })
-        );
-    };
-
-    const addTeamDetail = () => setTeamDetails([...teamDetails, { team: '', manpower: 1, duration: duration, manHours: duration }]);
-    const removeTeamDetail = (index: number) => setTeamDetails(teamDetails.filter((_, i) => i !== index));
-
-    const totalManHours = useMemo(() => teamDetails.reduce((sum, detail) => sum + detail.manHours, 0), [teamDetails]);
-
-    if (!isOpen) return null;
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!startDate || !endDate || duration <= 0) {
-            showAlert("Veuillez définir une période de début et de fin valide pour la tâche.");
-            return;
-        }
-        if (teamDetails.some(td => !td.team)) {
-            showAlert("Veuillez sélectionner une équipe pour chaque ligne.");
-            return;
-        }
-        onSave({
-            id: isEditing && taskToEdit ? taskToEdit.id : crypto.randomUUID(),
-            action,
-            equipment,
-            maintenanceType,
-            teamDetails,
-            totalManHours,
-            startDate,
-            endDate,
-            duration,
-        });
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-[150] p-4" onClick={onClose}>
-            <div className="bg-slate-900/90 border border-white/10 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
-                {/* Header Section */}
-                <header className="px-8 pt-8 pb-4 flex justify-between items-center relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[60px] rounded-full"></div>
-                    <div className="relative z-10">
-                        <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-                            <span className="w-1.5 h-6 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full"></span>
-                            {isEditing ? 'Modifier la Tâche' : 'Travail Supplémentaire'}
-                        </h2>
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1 ml-4">Enregistrement d'un nouvel événement</p>
-                    </div>
-                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all border border-white/5 relative z-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </header>
-
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 pb-8 custom-scrollbar">
-                    {/* Combined datalist: static teams + project disciplines */}
-                    <datalist id="team-discipline-datalist">
-                        {Array.from(new Set([...teams, ...availableTeams].filter(Boolean))).map(t => (
-                            <option key={t} value={t} />
-                        ))}
-                    </datalist>
-
-                    <div className="space-y-8 pt-4">
-                        {/* Basic Info Group */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Action / Désignation</label>
-                                <div className="relative group">
-                                    <input
-                                        type="text"
-                                        value={action}
-                                        onChange={e => setAction(e.target.value)}
-                                        required
-                                        placeholder="Décrivez le travail..."
-                                        className="w-full bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder:text-slate-600 font-medium"
-                                    />
-                                    <div className="absolute inset-0 rounded-2xl bg-blue-400/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity"></div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Équipement</label>
-                                <input
-                                    type="text"
-                                    value={equipment}
-                                    onChange={e => setEquipment(e.target.value)}
-                                    required
-                                    placeholder="Nom de la machine..."
-                                    className="w-full bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Maintenance Type & Dates */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Type</label>
-                                <div className="flex p-1 bg-slate-800/80 rounded-2xl border border-white/5">
-                                    <button
-                                        type="button"
-                                        onClick={() => setMaintenanceType('Corrective')}
-                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${maintenanceType === 'Corrective' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                                    >
-                                        Corrective
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMaintenanceType('Préventive')}
-                                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${maintenanceType === 'Préventive' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                                    >
-                                        Préventive
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Début</label>
-                                <input
-                                    type="datetime-local"
-                                    value={startDate}
-                                    onChange={e => setStartDate(e.target.value)}
-                                    required
-                                    className="w-full bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-xs"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Fin</label>
-                                <input
-                                    type="datetime-local"
-                                    value={endDate}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    required
-                                    className="w-full bg-slate-800/50 border border-white/5 rounded-2xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Team Details Group */}
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center px-1">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Composition de l'Équipe</label>
-                                <div className="h-[1px] flex-1 bg-white/5 mx-4"></div>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Durée: {duration.toFixed(2)}h</span>
-                            </div>
-
-                            <div className="space-y-3">
-                                {teamDetails.map((detail, index) => {
-                                    const allKnownTeams = Array.from(new Set([...teams, ...availableTeams].filter(Boolean)));
-                                    const isCustom = detail.team.trim().length > 0 && !allKnownTeams.some(t => t.toLowerCase() === detail.team.trim().toLowerCase());
-                                    return (
-                                        <div key={index} className={`group p-4 rounded-[1.5rem] border transition-all flex items-center gap-4 relative animate-in slide-in-from-left-4 duration-300 ${isCustom
-                                            ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-400/40'
-                                            : 'bg-white/5 border-white/5 hover:border-blue-500/30'
-                                            }`}>
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Discipline / Équipe</p>
-                                                    {isCustom && (
-                                                        <span className="text-[8px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                                            Personnalisé
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    list="team-discipline-datalist"
-                                                    value={detail.team}
-                                                    onChange={e => handleTeamDetailChange(index, 'team', e.target.value)}
-                                                    className={`w-full bg-transparent border-b px-0 py-1 text-sm text-white transition-all font-bold placeholder:font-normal placeholder:text-slate-600 focus:outline-none ${isCustom
-                                                        ? 'border-amber-500/40 focus:border-amber-400'
-                                                        : 'border-white/10 focus:border-blue-500'
-                                                        }`}
-                                                    placeholder="Choisir ou saisir une discipline..."
-                                                />
-                                                {isCustom && (
-                                                    <p className="text-[8px] text-amber-500/60 font-medium">
-                                                        Discipline personnalisée — non présente dans le planning
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="w-20 space-y-2">
-                                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Effectif</p>
-                                                <input
-                                                    type="number"
-                                                    value={detail.manpower}
-                                                    onChange={e => handleTeamDetailChange(index, 'manpower', e.target.value)}
-                                                    min="1"
-                                                    className="w-full bg-black/20 border border-white/[0.06] rounded-xl px-3 py-1.5 text-xs text-white text-center font-bold focus:ring-1 focus:ring-blue-500/40 focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="w-24 space-y-2">
-                                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Charges</p>
-                                                <div className="w-full bg-black/20 rounded-xl px-3 py-1.5 text-[10px] text-blue-400 text-center font-mono font-black border border-blue-500/10">
-                                                    {detail.manHours.toFixed(2)} HH
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeTeamDetail(index)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/10 flex-shrink-0"
-                                                title="Supprimer"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-
-                                <button
-                                    type="button"
-                                    onClick={addTeamDetail}
-                                    className="w-full py-4 rounded-[1.5rem] border-2 border-dashed border-white/5 text-slate-500 hover:text-blue-400 hover:bg-blue-400/5 hover:border-blue-400/30 transition-all font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-3"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                    Affecter une Nouvelle Équipe
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-
-                {/* Footer / Summary Strip */}
-                <footer className="px-8 py-6 bg-black/40 border-t border-white/5 flex items-center justify-between relative">
-                    <div className="absolute inset-0 bg-blue-500/5 blur-[40px] opacity-50 pointer-events-none"></div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Charge Totale H-H</p>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-white font-mono tracking-tighter">{totalManHours.toFixed(2)}</span>
-                            <span className="text-blue-400 font-bold text-xs uppercase tracking-widest">Heures-Homme</span>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 relative z-10">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all"
-                        >
-                            Annuler
-                        </button>
-                        <button
-                            type="submit"
-                            onClick={(e) => {
-                                // Manual submission trigger since button is outside form
-                                (document.querySelector('form') as HTMLFormElement)?.requestSubmit();
-                            }}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-3 rounded-2xl shadow-xl shadow-blue-900/30 transform hover:-translate-y-0.5 active:translate-y-0 transition-all text-[10px] uppercase tracking-[0.2em]"
-                        >
-                            {isEditing ? 'Mettre à jour' : 'Confirmer la Tâche'}
-                        </button>
-                    </div>
-                </footer>
-            </div>
-        </div>
-    );
-};
-
-
 const StatusBadge: React.FC<{ status: TaskStatus }> = ({ status }) => {
     const styles: Record<string, string> = {
         'À Faire': 'bg-slate-500/20 text-slate-400 border border-slate-500/20',
@@ -777,7 +453,7 @@ const TaskListModal: React.FC<{
 };
 
 
-const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parameters, evaluationData, setEvaluationData, hotReviewState, setHotReviewState, onBack, isColdStopFlow, evaluationKpis, onSaveProject, hasUnsavedChanges }) => {
+const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parameters, evaluationData, setEvaluationData, hotReviewState, setHotReviewState, onBack, isColdStopFlow, evaluationKpis, onSaveProject, hasUnsavedChanges, onAddExtraTask, costHubEntries }) => {
     const { startDate, endDate, dateFilteredTasks, selectedFamily, selectedEquipment, selectedDiscipline, selectedTeam, searchTerm, displayedStartDate, displayedEndDate, slippageAnalysis, sortConfig } = hotReviewState;
 
     const [evaluationHistory, setEvaluationHistory] = useState<EvaluationData[]>([]);
@@ -801,12 +477,28 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
         const startPeriodTs = new Date(displayedStartDate).getTime();
         const endPeriodTs = new Date(displayedEndDate).getTime();
 
-        return evaluationData.supplementaryTasks.filter(task => {
+        return results.scheduledTasks.filter(t => t.isExtraTask).map(task => {
+            return {
+                id: task.id.toString(),
+                description: task.action || '',
+                action: task.action || '',
+                equipment: task.equipment || '',
+                startDate: task.startTime ? task.startTime.toISOString() : new Date().toISOString(),
+                endDate: task.endTime ? task.endTime.toISOString() : new Date().toISOString(),
+                duration: task.duration || 0,
+                team: task.team || '',
+                cost: task.totalCost || 0,
+                ot: task.ot || '',
+                manpower: task.manpower || 1,
+                totalManHours: task.manHours || 0,
+                createdAt: task.createdAt || new Date().toISOString()
+            };
+        }).filter(task => {
             const taskStartTs = new Date(task.startDate).getTime();
             const taskEndTs = new Date(task.endDate).getTime();
             return taskStartTs < endPeriodTs && taskEndTs > startPeriodTs;
         });
-    }, [evaluationData.supplementaryTasks, displayedStartDate, displayedEndDate]);
+    }, [results.scheduledTasks, displayedStartDate, displayedEndDate]);
 
     const timeRangeDuration = useMemo(() => {
         if (!displayedStartDate || !displayedEndDate) return 0;
@@ -819,7 +511,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
     const [isDownloading, setIsDownloading] = useState(false);
 
     const [isAiLoading, setIsAiLoading] = useState(false);
-    const [isSuppTaskModalOpen, setIsSuppTaskModalOpen] = useState(false);
+    const [isExtraTaskModalOpen, setIsExtraTaskModalOpen] = useState(false);
     const [ganttStatusFilter, setGanttStatusFilter] = useState<'all' | 'done' | 'in-progress' | 'pending'>('all');
     const [chartIntervalHours, setChartIntervalHours] = useState(6);
     const [ganttFamilyOrder, setGanttFamilyOrder] = useState<string[]>([]);
@@ -2120,28 +1812,15 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
         setDisciplineColors(initialColorMap);
     }, [results.scheduledTasks]);
 
-    const handleSaveSuppTask = (task: SupplementaryTask) => {
-        pushToHistory(evaluationData);
-        setEvaluationData(prev => {
-            if (!prev) return null;
-            const existingIndex = prev.supplementaryTasks.findIndex(t => t.id === task.id);
-            let updatedTasks: SupplementaryTask[];
-            if (existingIndex > -1) {
-                updatedTasks = prev.supplementaryTasks.map(t => t.id === task.id ? task : t);
-            } else {
-                updatedTasks = [...prev.supplementaryTasks, task];
-            }
-            return { ...prev, supplementaryTasks: updatedTasks };
-        });
+    const handleSaveExtraTask = (task: Partial<SchedulingTaskData>) => {
+        if (onAddExtraTask) {
+            onAddExtraTask(task as SchedulingTaskData);
+        }
     };
 
+    // Note: Deleting extra tasks is not supported in this view to maintain data integrity with Cost Hub.
     const handleDeleteSuppTask = (taskId: string) => {
-        // Removed window.confirm as it's blocked in the sandbox
-        pushToHistory(evaluationData);
-        setEvaluationData(prev => {
-            if (!prev) return null;
-            return { ...prev, supplementaryTasks: prev.supplementaryTasks.filter(task => task.id !== taskId) };
-        });
+        showAlert("La suppression des tâches supplémentaires doit être effectuée depuis le Dashboard de Planification.");
     };
 
     const SortIcon: React.FC<{ columnKey: SortableHotReviewKeys }> = ({ columnKey }) => {
@@ -2432,7 +2111,13 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                 allTasks={results.scheduledTasks}
             />
             <SlippageModal isOpen={isSlippageModalOpen} onClose={() => setIsSlippageModalOpen(false)} onSave={handleSaveSlippageDetails} initialDetails={editingTaskForSlippage ? evaluationData.tasks[editingTaskForSlippage.id]?.slippageDetails : undefined} slippageHours={editingTaskForSlippage?.slippageHours || 0} />
-            <SupplementaryTaskModal isOpen={isSuppTaskModalOpen} onClose={() => { setIsSuppTaskModalOpen(false); setEditingSuppTask(null); }} onSave={handleSaveSuppTask} taskToEdit={editingSuppTask} initialStartDate={hotReviewState.startDate} initialEndDate={hotReviewState.endDate} availableTeams={disciplineOptions.filter(d => d !== 'all')} />
+            <ExtraTaskModal 
+                isOpen={isExtraTaskModalOpen} 
+                onClose={() => setIsExtraTaskModalOpen(false)} 
+                onSave={handleSaveExtraTask} 
+                costHubEntries={costHubEntries || []} 
+                existingTasks={results.scheduledTasks} 
+            />
 
             <AddTaskOutsideRangeModal
                 isOpen={isAddTaskOutsideRangeModalOpen}
@@ -3158,7 +2843,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                             <h3 className="text-xl font-black text-white">Travaux Supplémentaires de la Période</h3>
                         </div>
                         <button
-                            onClick={() => { setEditingSuppTask(null); setIsSuppTaskModalOpen(true); }}
+                            onClick={() => { setIsExtraTaskModalOpen(true); }}
                             className="bg-purple-600 hover:bg-purple-500 text-white font-black py-2.5 px-6 rounded-2xl shadow-xl shadow-purple-900/40 hover:shadow-purple-500/40 transition-all transform hover:scale-[1.03] active:scale-[0.98] uppercase tracking-[0.2em] text-[10px] flex items-center gap-3"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -3171,7 +2856,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                 <th className="px-6 py-4">Désignation / Équipement</th>
                                 <th className="px-6 py-4">Équipes Mobilisées</th>
                                 <th className="px-6 py-4 text-right">Durée (h)</th>
-                                <th className="px-6 py-4 text-right">Charge (H-H)</th>
+                                <th className="px-6 py-4 text-right">Charge Totale (Coût)</th>
                                 <th className="px-6 py-4 text-center">Gestion</th>
                             </tr></thead>
                             <tbody className="text-sm">
@@ -3182,13 +2867,12 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                             <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">{task.equipment}</div>
                                         </td>
                                         <td className="px-6 py-4 font-medium text-slate-300">
-                                            {task.teamDetails.map(d => d.team).join(', ')}
+                                            {task.team}
                                         </td>
                                         <td className="px-6 py-4 text-right font-mono font-bold text-white">{task.duration.toFixed(2)}h</td>
-                                        <td className="px-6 py-4 text-right font-mono font-bold text-purple-400">{task.totalManHours.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-right font-mono font-bold text-purple-400">{task.cost.toFixed(2)} MAD</td>
                                         <td className="px-6 py-4 text-center rounded-r-2xl">
                                             <div className="flex justify-center gap-2">
-                                                <button onClick={() => { setEditingSuppTask(task); setIsSuppTaskModalOpen(true); }} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
                                                 <button onClick={() => handleDeleteSuppTask(task.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                                             </div>
                                         </td>

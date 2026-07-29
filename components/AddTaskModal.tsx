@@ -118,6 +118,16 @@ const initialFormState: Partial<SchedulingTaskData> = {
 
 export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, allTasks, costData, costHubEntries }) => {
     const [formData, setFormData] = useState<Partial<SchedulingTaskData>>(initialFormState);
+    const [subcontractors, setSubcontractors] = useState<any[]>([{
+        id: Math.random().toString(36).substr(2, 9),
+        company: '',
+        posteNumber: '',
+        costType: 'HH',
+        qty: 0,
+        additionalCost: 0,
+        totalPrice: 0,
+        posteDescription: ''
+    }]);
     const [mode, setMode] = useState<'single' | 'multi'>('single');
     const [multiDisciplineData, setMultiDisciplineData] = useState<{ id: string; discipline: string; effectif: number }[]>([]);
     const [insertAfterId, setInsertAfterId] = useState<number | null>(null);
@@ -130,6 +140,16 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onS
     useEffect(() => {
         if (isOpen) {
             setFormData(initialFormState);
+            setSubcontractors([{
+                id: Math.random().toString(36).substr(2, 9),
+                company: '',
+                posteNumber: '',
+                costType: 'HH',
+                qty: 0,
+                additionalCost: 0,
+                totalPrice: 0,
+                posteDescription: ''
+            }]);
             setMode('single');
             setMultiDisciplineData([]);
             setInsertAfterId(null);
@@ -148,30 +168,58 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onS
         }
     }, [formData['DUREE'], formData['EFFECTIF'], mode]);
 
-    // Auto-fill logic for Cost Hub fields
-    useEffect(() => {
-        const company = String(formData['COMPANY'] || '').trim().toUpperCase();
-        const posteNum = String(formData['POSTE NUMBER'] || '').trim();
+    // Auto-fill logic moved to handleSubcontractorChange below
 
-        if (!posteNum) {
-            // Clear description when Poste Number is deleted
-            setFormData(prev => ({ ...prev, 'POSTE DESCRIPTION': '' }));
-            return;
-        }
+    const handleSubcontractorChange = (id: string, field: string, value: any) => {
+        setSubcontractors(prev => prev.map(sub => {
+            if (sub.id !== id) return sub;
 
-        if (company && posteNum && costHubEntries) {
-            const match = costHubEntries.find(c =>
-                c.company.toUpperCase() === company &&
-                String(c.posteNumber) === posteNum
-            );
-            setFormData(prev => ({
-                ...prev,
-                'POSTE DESCRIPTION': match ? match.posteDescription : '',
-                'COST_TYPE': match ? (match.costType || 'QT') : prev['COST_TYPE'],
-                'Price U': match ? (match.priceU || 0) : prev['Price U']
-            }));
+            const updatedSub = { ...sub, [field]: value };
+            
+            if (field === 'company' || field === 'posteNumber') {
+                const match = costHubEntries?.find(c => 
+                    c.company.toUpperCase() === updatedSub.company.toUpperCase() && 
+                    String(c.posteNumber) === String(updatedSub.posteNumber)
+                );
+                
+                if (match) {
+                    updatedSub.posteDescription = match.posteDescription;
+                    updatedSub.costType = match.costType === 'HH' || match.costType === 'QT' ? match.costType : 'HH';
+                    updatedSub.totalPrice = (updatedSub.qty * (match.priceU || 0)) + updatedSub.additionalCost;
+                } else {
+                    updatedSub.posteDescription = '';
+                    updatedSub.totalPrice = updatedSub.additionalCost;
+                }
+            } else if (field === 'qty' || field === 'additionalCost') {
+                const match = costHubEntries?.find(c => 
+                    c.company.toUpperCase() === updatedSub.company.toUpperCase() && 
+                    String(c.posteNumber) === String(updatedSub.posteNumber)
+                );
+                updatedSub.totalPrice = (updatedSub.qty * (match?.priceU || 0)) + updatedSub.additionalCost;
+            }
+
+            return updatedSub;
+        }));
+    };
+
+    const addSubcontractor = () => {
+        setSubcontractors(prev => [...prev, {
+            id: Math.random().toString(36).substr(2, 9),
+            company: '',
+            posteNumber: '',
+            costType: 'HH',
+            qty: 0,
+            additionalCost: 0,
+            totalPrice: 0,
+            posteDescription: ''
+        }]);
+    };
+
+    const removeSubcontractor = (id: string) => {
+        if (subcontractors.length > 1) {
+            setSubcontractors(prev => prev.filter(s => s.id !== id));
         }
-    }, [formData['COMPANY'], formData['POSTE NUMBER'], costHubEntries]);
+    };
 
     const { families, disciplines, equipments, companies, zones } = useMemo(() => ({
         families: [...new Set(allTasks.map(t => t.FAMILLE).filter(Boolean))].sort(),
@@ -248,11 +296,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onS
             'ADRPT Required': formData['ADRPT Required'] || 0,
             'ADRPT Readiness': formData['ADRPT Readiness'] || 0,
             'ZONE': formData['ZONE'] || '',
-            'COMPANY': formData['COMPANY'] || '',
-            'POSTE NUMBER': formData['POSTE NUMBER'] || '',
-            'POSTE DESCRIPTION': formData['POSTE DESCRIPTION'] || '',
-            'QT': formData['QT'] || 0,
-            'Additional Cost': formData['Additional Cost'] || 0,
+            subcontractors: subcontractors
         };
 
         if (mode === 'single') {
@@ -423,38 +467,76 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onS
 
                     {/* SECTION: BUDGET & COST CONTROL */}
                     <div className="bg-slate-950/60 p-8 rounded-[2.5rem] border border-white/5 relative group">
-                        <div className="flex items-center gap-4 mb-8">
-                            <Activity className="w-5 h-5 text-emerald-400" />
-                            <div>
-                                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Contrôle des Coûts</h3>
-                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">Poste Budgétaire & Tarification company</p>
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <Activity className="w-5 h-5 text-emerald-400" />
+                                <div>
+                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Contrôle des Coûts</h3>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">Intervenants & Tarification</p>
+                                </div>
                             </div>
+                            <button type="button" onClick={addSubcontractor} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-black uppercase transition-colors">
+                                + Ajouter Entreprise
+                            </button>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <CreatableSearchableSelect label="Entreprise (COMPANY)" name="COMPANY" value={formData['COMPANY'] || ''} onChange={handleSelectChange} options={companies} />
-                                <div className="group">
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Poste Number</label>
-                                    <input type="text" name="POSTE NUMBER" value={formData['POSTE NUMBER']} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono" placeholder="Ex: 12345..." />
-                                </div>
-                                <div className="group">
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Quantité (QT)</label>
-                                    <input type="number" name="QT" value={formData['QT']} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono" />
-                                </div>
-                                <div className="group">
-                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Additional Cost (€)</label>
-                                    <input type="number" name="Additional Cost" value={formData['Additional Cost']} onChange={handleChange} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono" />
-                                </div>
-                            </div>
+                        <div className="space-y-4">
+                            {subcontractors.map((sub, index) => (
+                                <div key={sub.id} className="bg-slate-900/40 border border-emerald-500/10 rounded-2xl p-5 relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 bottom-0 w-1 bg-emerald-500/20"></div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h4 className="text-xs font-black text-emerald-500 uppercase tracking-widest ml-2">Intervenant #{index + 1}</h4>
+                                        {subcontractors.length > 1 && (
+                                            <button type="button" onClick={() => removeSubcontractor(sub.id)} className="text-slate-500 hover:text-red-400 transition-colors">
+                                                <XCircle className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
 
-                            {/* Poste Description - Full Width */}
-                            <div className="group pt-2">
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Poste Description (Auto)</label>
-                                <div className="bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-blue-400 font-bold text-xs min-h-[56px] flex items-start shadow-inner leading-relaxed">
-                                    {formData['POSTE DESCRIPTION'] || 'Poste non configuré - Entrez le Company et Poste Number'}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                                        <div className="space-y-2 xl:col-span-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Entreprise</label>
+                                            <input type="text" list="add-companies" value={sub.company} onChange={e => handleSubcontractorChange(sub.id, 'company', e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-white text-xs" placeholder="Company..." />
+                                            <datalist id="add-companies">{companies.map(c => <option key={c} value={c} />)}</datalist>
+                                        </div>
+                                        
+                                        <div className="space-y-2 xl:col-span-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Poste Number</label>
+                                            <input type="text" value={sub.posteNumber} onChange={e => handleSubcontractorChange(sub.id, 'posteNumber', e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-white text-xs" placeholder="N°..." />
+                                        </div>
+
+                                        <div className="space-y-2 xl:col-span-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Quantité / Heures</label>
+                                            <div className="flex gap-2">
+                                                <input type="number" value={sub.qty} onChange={e => handleSubcontractorChange(sub.id, 'qty', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-white text-xs" />
+                                                <select value={sub.costType} onChange={e => handleSubcontractorChange(sub.id, 'costType', e.target.value)} className="bg-black/40 border border-white/5 rounded-xl px-2 text-[10px] font-bold text-slate-400">
+                                                    <option value="HH">HH</option>
+                                                    <option value="QT">QT</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 xl:col-span-1">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Add. Cost (MAD)</label>
+                                            <input type="number" value={sub.additionalCost} onChange={e => handleSubcontractorChange(sub.id, 'additionalCost', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-white text-xs" />
+                                        </div>
+
+                                        <div className="space-y-2 xl:col-span-1">
+                                            <label className="text-[9px] font-black text-emerald-400 uppercase tracking-widest ml-1">Total (Auto)</label>
+                                            <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-400 font-black text-xs tabular-nums truncate">
+                                                {new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format(sub.totalPrice)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 bg-black/20 rounded-lg p-3 border border-white/5">
+                                        <p className="text-[10px] text-slate-400 font-mono">
+                                            <span className="font-black text-emerald-500 mr-2">AUTO DESC:</span> 
+                                            {sub.posteDescription || 'Poste non configuré...'}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
