@@ -826,12 +826,48 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
   }, []);
 
   const handleAddExtraTask = useCallback((task: any) => {
-    // Only store extra tasks in schedulingState (raw data).
-    // Do NOT inject into schedulingResults.scheduledTasks — extra tasks
-    // must NOT appear in the Gantt chart or KPI engine, which would crash
-    // because the raw task fields don't match the ScheduledTask shape.
-    setSchedulingState(prev => prev ? { ...prev, tasks: [...prev.tasks, task] } : null);
+    // Map the raw ExtraTaskModal data into the SupplementaryTask shape used by
+    // evaluationData — the single source of truth that every UI component reads.
+    const totalCost = Array.isArray(task.subcontractors)
+      ? task.subcontractors.reduce((sum: number, s: any) => sum + (s.totalPrice || 0), 0)
+      : 0;
+
+    const suppTask = {
+      id: String(task.id || Date.now()),
+      action: task['GLOBAL TASKS'] || '',
+      equipment: task['Nom Equipement'] || '',
+      maintenanceType: 'Corrective' as const,
+      teamDetails: [
+        {
+          team: task.DISCIPLINE || task.ZONE || 'Extra',
+          manpower: task.EFFECTIF || 1,
+          duration: task.DUREE || 0,
+          manHours: task['Heures-Homme'] || 0,
+        }
+      ],
+      totalManHours: task['Heures-Homme'] || 0,
+      startDate: task['START DATE'] ? new Date(task['START DATE']).toISOString() : undefined,
+      endDate: task['END DATE'] ? new Date(task['END DATE']).toISOString() : undefined,
+      duration: task.DUREE || 0,
+      totalCost,
+      subcontractors: task.subcontractors || [],
+      ot: task.OT || '',
+      famille: task.FAMILLE || '',
+      zone: task.ZONE || '',
+      avis: task.AVIS || '',
+    };
+
+    setEvaluationData(prev => {
+      if (!prev) return null;
+      const taskId = String(suppTask.id);
+      const exists = (prev.supplementaryTasks || []).some((t: any) => String(t.id) === taskId);
+      const updated = exists
+        ? (prev.supplementaryTasks || []).map((t: any) => String(t.id) === taskId ? suppTask : t)
+        : [...(prev.supplementaryTasks || []), suppTask];
+      return { ...prev, supplementaryTasks: updated as any };
+    });
   }, []);
+
 
   // Stable save handler for HotExecutionReview
   const handleSaveProjectStable = useCallback(() => handleManualSave(false), [handleManualSave]);

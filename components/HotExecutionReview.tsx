@@ -477,28 +477,42 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
         const startPeriodTs = new Date(displayedStartDate).getTime();
         const endPeriodTs = new Date(displayedEndDate).getTime();
 
-        return results.scheduledTasks.filter(t => t.isExtraTask).map(task => {
-            return {
-                id: task.id.toString(),
-                description: task.action || '',
-                action: task.action || '',
-                equipment: task.equipment || '',
-                startDate: task.startTime ? task.startTime.toISOString() : new Date().toISOString(),
-                endDate: task.endTime ? task.endTime.toISOString() : new Date().toISOString(),
-                duration: task.duration || 0,
-                team: task.team || '',
-                cost: task.totalCost || 0,
-                ot: task.ot || '',
-                manpower: task.manpower || 1,
-                totalManHours: task.manHours || 0,
-                createdAt: task.createdAt || new Date().toISOString()
-            };
-        }).filter(task => {
-            const taskStartTs = new Date(task.startDate).getTime();
-            const taskEndTs = new Date(task.endDate).getTime();
-            return taskStartTs < endPeriodTs && taskEndTs > startPeriodTs;
-        });
-    }, [results.scheduledTasks, displayedStartDate, displayedEndDate]);
+        // Read from evaluationData.supplementaryTasks — the single source of truth.
+        // Extra tasks never enter results.scheduledTasks (Gantt) to avoid crashes.
+        return evaluationData.supplementaryTasks
+            .map((task: any) => {
+                const totalManHours = task.totalManHours || 0;
+                const totalCost = task.totalCost ||
+                    (Array.isArray(task.subcontractors)
+                        ? task.subcontractors.reduce((s: number, sub: any) => s + (sub.totalPrice || 0), 0)
+                        : 0);
+                const teamLabel = Array.isArray(task.teamDetails) && task.teamDetails.length > 0
+                    ? task.teamDetails.map((td: any) => td.team).join(' + ')
+                    : (task.team || '');
+
+                return {
+                    id: task.id,
+                    description: task.action || '',
+                    action: task.action || '',
+                    equipment: task.equipment || '',
+                    startDate: task.startDate || displayedStartDate || new Date().toISOString(),
+                    endDate: task.endDate || displayedEndDate || new Date().toISOString(),
+
+                    duration: task.duration || 0,
+                    team: teamLabel,
+                    cost: totalCost,
+                    ot: task.ot || '',
+                    manpower: task.teamDetails?.[0]?.manpower || 1,
+                    totalManHours,
+                    createdAt: task.createdAt || new Date().toISOString(),
+                };
+            })
+            .filter((task: any) => {
+                const taskStartTs = new Date(task.startDate).getTime();
+                const taskEndTs = new Date(task.endDate).getTime();
+                return taskStartTs < endPeriodTs && taskEndTs > startPeriodTs;
+            });
+    }, [evaluationData.supplementaryTasks, displayedStartDate, displayedEndDate]);
 
     const timeRangeDuration = useMemo(() => {
         if (!displayedStartDate || !displayedEndDate) return 0;
@@ -1435,10 +1449,9 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
 
         const supplementaryManHoursByDiscipline: Record<string, number> = {};
         supplementaryTasksInPeriod.forEach(task => {
-            task.teamDetails.forEach(detail => {
-                const disc = detail.team;
-                supplementaryManHoursByDiscipline[disc] = (supplementaryManHoursByDiscipline[disc] || 0) + detail.manHours;
-            });
+            // task is already mapped to the display shape — use team & totalManHours directly
+            const disc = task.team || 'Extra';
+            supplementaryManHoursByDiscipline[disc] = (supplementaryManHoursByDiscipline[disc] || 0) + task.totalManHours;
         });
 
         const progressHistory: { timestamp: string; planned: number; actual: number; plannedCount: number; actualCount: number; }[] = [];
@@ -1818,9 +1831,20 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
         }
     };
 
-    // Note: Deleting extra tasks is not supported in this view to maintain data integrity with Cost Hub.
+    // Delete a supplementary task directly from evaluationData
     const handleDeleteSuppTask = (taskId: string) => {
-        showAlert("La suppression des tâches supplémentaires doit être effectuée depuis le Dashboard de Planification.");
+        setEvaluationData(prev => prev ? ({
+            ...prev,
+            supplementaryTasks: (prev.supplementaryTasks || []).filter((t: any) => String(t.id) !== String(taskId)),
+        }) : prev);
+    };
+
+    // Save edited supplementary task (replace in place)
+    const handleSaveEditedSuppTask = (task: Partial<SchedulingTaskData>) => {
+        if (onAddExtraTask) {
+            onAddExtraTask(task as SchedulingTaskData);
+        }
+        setEditingSuppTask(null);
     };
 
     const SortIcon: React.FC<{ columnKey: SortableHotReviewKeys }> = ({ columnKey }) => {
@@ -2112,12 +2136,16 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
             />
             <SlippageModal isOpen={isSlippageModalOpen} onClose={() => setIsSlippageModalOpen(false)} onSave={handleSaveSlippageDetails} initialDetails={editingTaskForSlippage ? evaluationData.tasks[editingTaskForSlippage.id]?.slippageDetails : undefined} slippageHours={editingTaskForSlippage?.slippageHours || 0} />
             <ExtraTaskModal 
-                isOpen={isExtraTaskModalOpen} 
-                onClose={() => setIsExtraTaskModalOpen(false)} 
-                onSave={handleSaveExtraTask} 
+                isOpen={isExtraTaskModalOpen || !!editingSuppTask} 
+                onClose={() => { setIsExtraTaskModalOpen(false); setEditingSuppTask(null); }} 
+                onSave={editingSuppTask ? handleSaveEditedSuppTask : handleSaveExtraTask} 
                 costHubEntries={costHubEntries || []} 
-                existingTasks={results.scheduledTasks} 
+                existingTasks={results.scheduledTasks}
+                initialTask={editingSuppTask}
+                defaultStartDate={displayedStartDate || startDate || undefined}
+                defaultEndDate={displayedEndDate || endDate || undefined}
             />
+
 
             <AddTaskOutsideRangeModal
                 isOpen={isAddTaskOutsideRangeModalOpen}
@@ -2873,7 +2901,23 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                         <td className="px-6 py-4 text-right font-mono font-bold text-purple-400">{task.cost.toFixed(2)} MAD</td>
                                         <td className="px-6 py-4 text-center rounded-r-2xl">
                                             <div className="flex justify-center gap-2">
-                                                <button onClick={() => handleDeleteSuppTask(task.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                {/* Edit button */}
+                                                <button
+                                                    onClick={() => setEditingSuppTask(task as any)}
+                                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
+                                                    title="Modifier">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                </button>
+                                                {/* Delete button */}
+                                                <button onClick={() => handleDeleteSuppTask(task.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

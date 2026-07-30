@@ -159,8 +159,9 @@ const DualPivotCard = ({ title, sub, icon, color, famData, discData, totalFam, t
 const SCurveTip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const pl = payload[0]?.payload || {};
+    const hasOverspend = (pl.gap ?? 0) > 0;
     return (
-        <div className="bg-[#09111f]/98 border border-white/10 rounded-2xl p-5 shadow-2xl backdrop-blur-xl min-w-[240px]">
+        <div className="bg-[#09111f]/98 border border-white/10 rounded-2xl p-5 shadow-2xl backdrop-blur-xl min-w-[260px]">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 pb-2 border-b border-white/5">{label}</p>
             <div className="space-y-2 mb-3">
                 <div className="flex items-center justify-between">
@@ -171,11 +172,20 @@ const SCurveTip = ({ active, payload, label }: any) => {
                     <div className="flex items-center gap-2"><div className="w-2 h-0.5 bg-emerald-400 rounded" /><span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Exécuté Cumulé</span></div>
                     <span className="text-[10px] font-black text-emerald-400 tabular-nums">{fmt(pl.executed ?? 0)}</span>
                 </div>
+                {(pl.extraCost > 0) && (
+                    <div className="flex items-center justify-between bg-red-500/10 rounded-lg px-2 py-1.5 mt-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                            <span className="text-[9px] font-black text-red-400 uppercase tracking-wide">dont Travaux Extra</span>
+                        </div>
+                        <span className="text-[10px] font-black text-red-400 tabular-nums">+{fmt(pl.extraCost)}</span>
+                    </div>
+                )}
             </div>
             {(pl.execMo > 0 || pl.execSc > 0 || pl.execHd > 0 || pl.execPdr > 0) && (
                 <div className="border-t border-white/5 pt-3 space-y-1.5">
                     <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-2">Détail Exécuté</p>
-                    {[['Main d\'Œuvre', pl.execMo, '#3b82f6'], ['Échafaudage', pl.execSc, '#8b5cf6'], ['Manutention', pl.execHd, '#06b6d4'], ['PDR', pl.execPdr, '#f59e0b']].map(([lbl, val, col]: any) => val > 0 ? (
+                    {[["Main d'Oeuvre", pl.execMo, '#3b82f6'], ['Échafaudage', pl.execSc, '#8b5cf6'], ['Manutention', pl.execHd, '#06b6d4'], ['PDR', pl.execPdr, '#f59e0b']].map(([lbl, val, col]: any) => val > 0 ? (
                         <div key={lbl} className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{ background: col }} /><span className="text-[8px] font-bold text-slate-500">{lbl}</span></div>
                             <span className="text-[8px] font-black tabular-nums" style={{ color: col }}>{fmtK(val)}</span>
@@ -183,10 +193,11 @@ const SCurveTip = ({ active, payload, label }: any) => {
                     ) : null)}
                 </div>
             )}
-            {(pl.gap > 0) && <p className="text-[8px] font-bold text-red-400/80 mt-3 pt-2 border-t border-white/5">Écart: {fmtK(pl.gap)}</p>}
+            {hasOverspend && <p className="text-[8px] font-bold text-red-400/80 mt-3 pt-2 border-t border-white/5">Surcoût: +{fmtK(pl.gap)}</p>}
         </div>
     );
 };
+
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 const getWeekNum = (d: Date) => {
@@ -210,7 +221,47 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
     const [scRes, setScRes] = useState<'1H' | '6H' | '12H' | '1D' | '1W' | '1M' | '1Y'>('1W');
     
     const [isExtraTaskModalOpen, setIsExtraTaskModalOpen] = useState(false);
-    const extraTasks = useMemo(() => tasks.filter(t => t.isExtraTask), [tasks]);
+
+    // Combine extra tasks from two sources:
+    // 1. tasks with isExtraTask flag (added via scheduling page)
+    // 2. evaluationData.supplementaryTasks (added via Hot Execution Review modal)
+    const extraTasks = useMemo(() => {
+        const fromScheduled = tasks.filter(t => t.isExtraTask);
+
+        const fromEvaluation: any[] = (evaluationData?.supplementaryTasks || []).map((st: any) => ({
+            id: st.id,
+            'GLOBAL TASKS': st.action || '',
+            'Nom Equipement': st.equipment || '',
+            FAMILLE: st.famille || '',
+            ZONE: st.zone || '',
+            DISCIPLINE: st.teamDetails?.[0]?.team || '',
+            EFFECTIF: st.teamDetails?.[0]?.manpower || 1,
+            DUREE: st.duration || 0,
+            'Heures-Homme': st.totalManHours || 0,
+            'PRICE FOR HH': 0,         // Cost already rolled up in totalCost
+            'MANUAL PRICE': 0,
+            'PDR COST': 0,
+            'Scaffolding manual Price': 0,
+            'Handling manual Price': 0,
+            'TOTAL TASK COST': st.totalCost || 0,
+            'TOTAL_COST': st.totalCost || 0,
+            isExtraTask: true,
+            subcontractors: st.subcontractors || [],
+            // Keep subcontractor detail for analytics breakdown
+            _suppTask: st,
+        }));
+
+        // Avoid duplicates if the same task somehow ended up in both
+        const scheduledIds = new Set(fromScheduled.map(t => String(t.id)));
+        const uniqueFromEval = fromEvaluation.filter(t => !scheduledIds.has(String(t.id)));
+
+        return [...fromScheduled, ...uniqueFromEval];
+    }, [tasks, evaluationData?.supplementaryTasks]);
+
+    // Total surcoût across all extra tasks
+    const extraTotalCost = useMemo(() =>
+        extraTasks.reduce((sum, t) => sum + (t['TOTAL TASK COST'] || t['TOTAL_COST'] || 0), 0)
+    , [extraTasks]);
 
     // ── S-Curve computation ──────────────────────────────────────────────────
     const scurveData = useMemo(() => {
@@ -281,6 +332,19 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
                 }
             });
 
+            // Add supplementary (extra) task costs to the executed line
+            // They count as real executed spend at the moment their task ended
+            (evaluationData?.supplementaryTasks || []).forEach((st: any) => {
+                if (st.endDate) {
+                    const stEnd = new Date(st.endDate);
+                    if (stEnd <= bEnd) {
+                        const stCost = st.totalCost || 0;
+                        eSum += stCost;
+                        eMo += stCost; // extra tasks are mostly MO-based; breakdown in tooltip
+                    }
+                }
+            });
+
             return {
                 label: fmtBucket(bEnd),
                 planned: pSum,
@@ -289,10 +353,15 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
                 execSc: eSc,
                 execHd: eHd,
                 execPdr: ePdr,
-                gap: pSum - eSum,
+                gap: eSum - pSum,  // positive = overspend (extra cost exceeded plan)
+                extraCost: (evaluationData?.supplementaryTasks || []).reduce((sum: number, st: any) => {
+                    if (st.endDate && new Date(st.endDate) <= bEnd) return sum + (st.totalCost || 0);
+                    return sum;
+                }, 0),
             };
         });
     }, [tasks, evaluationData, scRes]);
+
 
     const hasFilters = fZone !== 'all' || fEquip !== 'all' || fFamille !== 'all' || fDisc !== 'all' || fMaint !== 'all' || !!dateStart || !!dateEnd;
     const resetFilters = () => { setFZone('all'); setFEquip('all'); setFFamille('all'); setFDisc('all'); setFMaint('all'); setDateStart(''); setDateEnd(''); };
@@ -456,7 +525,7 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
                                 <div>
                                     <h2 className="text-lg font-black text-white tracking-tight uppercase">Impact Budgétaire Extra</h2>
                                     <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mt-1">
-                                        Surcoût détecté : <span className="text-white font-black">{fmt(extraTasks.reduce((sum, t) => sum + (t['TOTAL TASK COST'] || 0), 0))}</span> ({extraTasks.length} Tâches Supplémentaires)
+                                        Surcoût détecté : <span className="text-white font-black">{fmt(extraTotalCost)}</span> ({extraTasks.length} Tâches Supplémentaires)
                                     </p>
                                 </div>
                             </div>

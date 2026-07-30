@@ -9,10 +9,14 @@ interface ExtraTaskModalProps {
     onSave: (task: Partial<SchedulingTaskData>) => void;
     costHubEntries: CostHubEntry[];
     existingTasks: any[];
+    initialTask?: any;        // When provided, the modal is in edit mode
+    defaultStartDate?: string; // ISO string — pre-fills date for new tasks (shutdown start)
+    defaultEndDate?: string;   // ISO string — pre-fills date for new tasks (shutdown end)
 }
 
 export const ExtraTaskModal: React.FC<ExtraTaskModalProps> = ({
-    isOpen, onClose, onSave, costHubEntries, existingTasks
+    isOpen, onClose, onSave, costHubEntries, existingTasks, initialTask,
+    defaultStartDate, defaultEndDate
 }) => {
     // Basic Task Details
     const [action, setAction] = useState('');
@@ -52,6 +56,55 @@ export const ExtraTaskModal: React.FC<ExtraTaskModalProps> = ({
         totalPrice: 0,
         posteDescription: ''
     }]);
+
+    // Pre-fill form when editing an existing task, or reset with defaults for new task
+    useEffect(() => {
+        if (isOpen && initialTask) {
+            // ── EDIT MODE ──
+            setAction(initialTask.action || '');
+            setEquipement(initialTask.equipment || '');
+            setFamille(initialTask.famille || '');
+            setZone(initialTask.zone || '');
+            setAvis(initialTask.avis || '');
+            setOt(initialTask.ot || '');
+            if (initialTask.startDate) setStartDate(new Date(initialTask.startDate).toISOString().slice(0, 16));
+            if (initialTask.endDate) setEndDate(new Date(initialTask.endDate).toISOString().slice(0, 16));
+
+            // Disciplines: the teamDetails[0].team field may be a single combined string
+            // like "Electricien, Exploitant, Graisseur" — split it back into individual items
+            const rawTeam = initialTask.teamDetails?.[0]?.team || '';
+            const splitDisciplines = rawTeam
+                ? rawTeam.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : [];
+            setDisciplines(splitDisciplines);
+
+            // Build effectifMap: each discipline gets manpower of the parent teamDetail
+            const manpower = initialTask.teamDetails?.[0]?.manpower || 1;
+            const em: Record<string, number> = {};
+            if (splitDisciplines.length > 0) {
+                splitDisciplines.forEach((d: string) => { em[d] = manpower; });
+            } else {
+                em['Default'] = manpower;
+            }
+            setEffectifMap(em);
+
+            // Restore subcontractors
+            if (Array.isArray(initialTask.subcontractors) && initialTask.subcontractors.length > 0) {
+                setSubcontractors(initialTask.subcontractors);
+            } else {
+                setSubcontractors([{ id: Math.random().toString(36).substr(2, 9), company: '', discipline: '', posteNumber: '', costType: 'HH', qty: 0, additionalCost: 0, totalPrice: 0, posteDescription: '' }]);
+            }
+        } else if (isOpen && !initialTask) {
+            // ── CREATE MODE — use shutdown period dates as defaults ──
+            setAction(''); setEquipement(''); setFamille(''); setZone('');
+            setAvis(''); setOt('');
+            // Default dates to shutdown period so new tasks are always inside the filter window
+            setStartDate(defaultStartDate ? new Date(defaultStartDate).toISOString().slice(0, 16) : '');
+            setEndDate(defaultEndDate ? new Date(defaultEndDate).toISOString().slice(0, 16) : '');
+            setDisciplines([]); setEffectifMap({});
+            setSubcontractors([{ id: Math.random().toString(36).substr(2, 9), company: '', discipline: '', posteNumber: '', costType: 'HH', qty: 0, additionalCost: 0, totalPrice: 0, posteDescription: '' }]);
+        }
+    }, [isOpen, initialTask, defaultStartDate, defaultEndDate]);
 
     // Auto-calculate exact duration based on dates (rounded to 2 decimal places)
     const duration = useMemo(() => {
@@ -172,7 +225,7 @@ export const ExtraTaskModal: React.FC<ExtraTaskModalProps> = ({
 
     const handleSave = () => {
         const newTask: Partial<SchedulingTaskData> = {
-            id: Date.now(),
+            id: initialTask?.id || Date.now(),
             "GLOBAL TASKS": action,
             "Nom Equipement": equipement,
             FAMILLE: famille,
@@ -187,7 +240,7 @@ export const ExtraTaskModal: React.FC<ExtraTaskModalProps> = ({
             QT: 0,
             EFFECTIF: totalEffectif,
             isExtraTask: true,
-            isLeadTaskForOT: true, // It's an extra task, so it acts as its own lead
+            isLeadTaskForOT: true,
             subcontractors: subcontractors
         };
         onSave(newTask);
