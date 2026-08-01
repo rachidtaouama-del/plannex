@@ -24,7 +24,7 @@ import { PreparatifManagement } from './PreparatifManagement';
 import CostControlPage from './CostControlPage';
 import ScheduleHealthPage from './ScheduleHealthPage';
 import { CompanyCost } from '../types';
-import { QuickAddScaffoldingModal, QuickAddHandlingModal, QuickAddSimopsModal, QuickAddPermitModal } from './QuickAddModals';
+import { QuickAddScaffoldingModal, QuickAddHandlingModal, QuickAddSimopsModal, QuickAddPermitModal, QuickAddPdrModal } from './QuickAddModals';
 import { PdrItemModal } from './PdrItemModal';
 import { MapTaskModal } from './MapTaskModal';
 
@@ -4619,10 +4619,10 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                 </div>
             )}
             {quickAddTarget?.type === 'SCAFFOLDING' && (
-                <QuickAddScaffoldingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setScaffoldingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+                <QuickAddScaffoldingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setScaffoldingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} costHubEntries={costHubEntries} />
             )}
             {quickAddTarget?.type === 'HANDLING' && (
-                <QuickAddHandlingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setHandlingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+                <QuickAddHandlingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setHandlingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} costHubEntries={costHubEntries} />
             )}
             {quickAddTarget?.type === 'SIMOPS' && (
                 <QuickAddSimopsModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setSimopsRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
@@ -4631,7 +4631,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                 <QuickAddPermitModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setPermitRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
             )}
             {quickAddTarget?.type === 'PDR' && (
-                <PdrItemModal isOpen={true} onClose={() => setQuickAddTarget(null)} item={{ OT: String(quickAddTarget.task.OT || '') }} onSave={(r) => { setPdrItems(prev => [...prev, r]); setQuickAddTarget(null); }} />
+                <QuickAddPdrModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setPdrItems(prev => [...prev, r]); setQuickAddTarget(null); }} />
             )}
             {quickAddTarget?.type === 'MAP' && (
                 <MapTaskModal isOpen={true} onClose={() => setQuickAddTarget(null)} editingTask={{
