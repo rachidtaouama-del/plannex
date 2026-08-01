@@ -24,6 +24,9 @@ import { PreparatifManagement } from './PreparatifManagement';
 import CostControlPage from './CostControlPage';
 import ScheduleHealthPage from './ScheduleHealthPage';
 import { CompanyCost } from '../types';
+import { QuickAddScaffoldingModal, QuickAddHandlingModal, QuickAddSimopsModal, QuickAddPermitModal } from './QuickAddModals';
+import { PdrItemModal } from './PdrItemModal';
+import { MapTaskModal } from './MapTaskModal';
 
 // This function assumes the xlsx library is loaded from a CDN.
 declare var XLSX: any;
@@ -185,18 +188,6 @@ const SchedulingHeader: React.FC<{
                 >
                     <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
                 </button>
-                
-                {hasUnsavedChanges && onSaveProject && (
-                    <button
-                        onClick={onSaveProject}
-                        className="group relative overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 hover:text-cyan-300 font-black py-2.5 px-5 rounded-2xl flex items-center gap-2 transition-all"
-                    >
-                        <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                        <span className="text-[10px] uppercase tracking-[0.2em] relative z-10">Sauvegarder</span>
-                    </button>
-                )}
-
                 <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2.5">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
@@ -283,6 +274,25 @@ const SchedulingHeader: React.FC<{
                         </div>
                     </div>
                 )}
+                
+                {/* SAUVEGARDER BUTTON - Relocated and Redesigned */}
+                {onSaveProject && (
+                    <button
+                        onClick={onSaveProject}
+                        title={hasUnsavedChanges ? "Sauvegarder les modifications" : "Aucune modification à sauvegarder"}
+                        className={`relative w-11 h-11 flex items-center justify-center rounded-2xl border transition-all active:scale-95 shadow-lg group ${hasUnsavedChanges ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30' : 'bg-white/[0.03] border-white/10 text-slate-500 hover:text-white hover:bg-white/10 hover:border-white/20'}`}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="relative z-10 transition-transform group-hover:scale-110">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        {hasUnsavedChanges && (
+                            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-cyan-400 rounded-full border-2 border-[#0c0c0e] animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]"></span>
+                        )}
+                    </button>
+                )}
+
                 <div className="flex items-center" ref={menuRef}>
                     <div className="relative">
                         <button
@@ -1610,6 +1620,10 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
     const [permitRecords, setPermitRecords] = useState(initialState?.permitRecords ?? []);
     const [simopsRecords, setSimopsRecords] = useState(initialState?.simopsRecords ?? []);
     const [mapTasks, setMapTasks] = useState<SchedulingTaskData[]>(initialState?.mapTasks ?? []);
+    
+    // Quick Add Requirements state
+    const [quickAddTarget, setQuickAddTarget] = useState<{ task: SchedulingTaskData, type: 'PDR' | 'SCAFFOLDING' | 'HANDLING' | 'SIMOPS' | 'PERMIT' | 'MAP' } | null>(null);
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
     // --- CRITICAL: Sync external state changes (from DataManagementPage) back into local state ---
     // When the user adds/edits/deletes data in the Master Data Center, App.tsx updates schedulingState.
@@ -4092,6 +4106,10 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                     tasks={tasks}
                     costData={costData}
                     evaluationData={internalEvaluationData}
+                    costHubEntries={costHubEntries}
+                    scaffoldingRecords={scaffoldingRecords}
+                    handlingRecords={handlingRecords}
+                    pdrItems={allPdrItems}
                     onBack={() => setStep('dashboard')}
                 />
             ) : step === 'health' ? (
@@ -4399,6 +4417,11 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                                     <SortableHeader columnKey="isKeyEvent" title="KEY" sortConfig={sortConfig} requestSort={requestSort} />
                                                 </div>
                                             </th>
+                                            <th className="px-4 py-3 sticky left-[356px] bg-slate-900/95 z-50 w-[80px] border-r border-white/10 shadow-[2px_0_10px_rgba(0,0,0,0.5)]">
+                                                <div className="flex items-center justify-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                                    Actions
+                                                </div>
+                                            </th>
 
                                             {/* Dynamic Columns */}
                                             {columnDefs.filter(col => col.visible).map(col => (
@@ -4421,7 +4444,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                             const groupColors = task.multiDisciplineId ? multiDisciplineColorMap[task.multiDisciplineId] : null;
                                             return (
                                                 <tr key={task.id}
-                                                    className={`h-[50px] transition-all group/row ${isSelected
+                                                    className={`h-[50px] transition-all group/row ${openDropdownId === task.id ? 'relative z-50' : 'relative z-0'} ${isSelected
                                                         ? 'bg-blue-500/10'
                                                         : groupColors
                                                             ? `${groupColors.bg} ${groupColors.hover}`
@@ -4510,6 +4533,28 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                                                             <svg width="18" height="18" viewBox="0 0 24 24" fill={task.isKeyEvent ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
                                                         </button>
                                                     </td>
+                                                    <td className={`px-4 py-1.5 text-center sticky left-[356px] bg-inherit ${openDropdownId === task.id ? 'z-[60]' : 'z-10'} border-r border-white/10 shadow-[2px_0_10px_rgba(0,0,0,0.2)] transition-colors`}>
+                                                        <div className="relative">
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === task.id ? null : task.id); }}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 border border-white/10 hover:border-white/30 transition-all text-slate-400 hover:text-white"
+                                                            >
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                                            </button>
+                                                            {openDropdownId === task.id && (
+                                                                <div className="absolute top-full left-0 mt-2 w-56 bg-slate-800 border border-indigo-500/30 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-[200] text-left">
+                                                                    <div className="p-1.5">
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'PDR' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors">📦 Ajouter PDR</button>
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'SCAFFOLDING' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors">🏗️ Ajouter Échafaudage</button>
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'HANDLING' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors">🚚 Ajouter Manutention</button>
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'SIMOPS' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors">⚡ Ajouter SIMOPS</button>
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'PERMIT' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors">📋 Ajouter Permis</button>
+                                                                        <button onClick={() => { setQuickAddTarget({ task, type: 'MAP' }); setOpenDropdownId(null); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg flex items-center gap-3 transition-colors">📍 Nouvelle Tâche Map</button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
 
                                                     {/* Dynamic Cell Rendering */}
                                                     {columnDefs.filter(col => col.visible).map(col => (
@@ -4573,6 +4618,29 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
                     </div>
                 </div>
             )}
+            {quickAddTarget?.type === 'SCAFFOLDING' && (
+                <QuickAddScaffoldingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setScaffoldingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+            {quickAddTarget?.type === 'HANDLING' && (
+                <QuickAddHandlingModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setHandlingRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+            {quickAddTarget?.type === 'SIMOPS' && (
+                <QuickAddSimopsModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setSimopsRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+            {quickAddTarget?.type === 'PERMIT' && (
+                <QuickAddPermitModal isOpen={true} onClose={() => setQuickAddTarget(null)} task={quickAddTarget.task} onSave={(r) => { setPermitRecords(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+            {quickAddTarget?.type === 'PDR' && (
+                <PdrItemModal isOpen={true} onClose={() => setQuickAddTarget(null)} item={{ OT: String(quickAddTarget.task.OT || '') }} onSave={(r) => { setPdrItems(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+            {quickAddTarget?.type === 'MAP' && (
+                <MapTaskModal isOpen={true} onClose={() => setQuickAddTarget(null)} editingTask={{
+                    ...quickAddTarget.task,
+                    latitude: 0,
+                    longitude: 0
+                }} onSave={(r) => { setMapTasks(prev => [...prev, r]); setQuickAddTarget(null); }} />
+            )}
+
         </div>
     );
 };

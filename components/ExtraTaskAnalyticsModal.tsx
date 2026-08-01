@@ -53,15 +53,18 @@ export const ExtraTaskAnalyticsModal: React.FC<ExtraTaskAnalyticsModalProps> = (
                     const subCost = sub.totalPrice || 0;
                     const ct = String(sub.costType || 'HH').toUpperCase();
                     if (ct === 'HH') mo += subCost;
+                    else if (ct === 'PRESTATION') pr += subCost;
                     else pdr += subCost;
                 });
             } else {
                 mo  += (t['Heures-Homme'] || 0) * (t['PRICE FOR HH'] || 0);
-                pr  += t['MANUAL PRICE'] || 0;
-                pdr += t['PDR COST'] || 0;
-                sc  += t['Scaffolding manual Price'] || 0;
-                hd  += t['Handling manual Price'] || 0;
             }
+
+            // Database & manual overrides are unconditional 
+            pr  += t['MANUAL PRICE'] || 0;
+            pdr += t['PDR COST'] || 0;
+            sc  += (t['Scaffolding manual Price'] || t['SCAFFOLDING_COST'] || 0);
+            hd  += (t['Handling manual Price'] || t['HANDLING_COST'] || 0);
 
             const zone = t.ZONE || t.zone || 'N/A';
             zones[zone] = (zones[zone] || 0) + tcost;

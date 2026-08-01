@@ -673,6 +673,19 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     window.scrollTo(0, 0);
   };
 
+  useEffect(() => {
+    if (activePage !== 'project_selection') {
+      window.scrollTo(0, 0);
+    }
+  }, [activePage]);
+
+  // Auto-save evaluationData on every change to prevent data loss when leaving HotExecutionReview
+  useEffect(() => {
+    if (activeProject?.id && evaluationData) {
+      saveEvalData(activeProject.id, evaluationData);
+    }
+  }, [evaluationData, activeProject?.id]);
+
   const handleBackToDashboard = () => {
     setPlannerSubPage('dashboard');
   }

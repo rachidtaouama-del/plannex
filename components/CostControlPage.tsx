@@ -10,10 +10,19 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     ComposedChart, Line, Area,
 } from 'recharts';
-import type { SchedulingTaskData, CompanyCost, EvaluationData } from '../types';
+import type { SchedulingTaskData, CompanyCost, EvaluationData, ScaffoldingRecord, HandlingRecord, PDRItem } from '../types';
 import { ExtraTaskAnalyticsModal } from './ExtraTaskAnalyticsModal';
 
-interface CostControlPageProps { tasks: SchedulingTaskData[]; costData: CompanyCost[]; evaluationData?: EvaluationData | null; onBack: () => void; }
+interface CostControlPageProps { 
+    tasks: SchedulingTaskData[]; 
+    costData: CompanyCost[]; 
+    evaluationData?: EvaluationData | null; 
+    costHubEntries?: any[]; 
+    scaffoldingRecords?: ScaffoldingRecord[];
+    handlingRecords?: HandlingRecord[];
+    pdrItems?: PDRItem[];
+    onBack: () => void; 
+}
 
 const PALETTE = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#6366f1', '#14b8a6', '#f97316'];
 const fmt = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 }).format(v);
@@ -206,7 +215,7 @@ const getWeekNum = (d: Date) => {
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function CostControlPage({ tasks, costData, evaluationData, onBack }: CostControlPageProps) {
+export default function CostControlPage({ tasks, costData, evaluationData, costHubEntries = [], scaffoldingRecords = [], handlingRecords = [], pdrItems = [], onBack }: CostControlPageProps) {
     const [search, setSearch] = useState('');
     const [fZone, setFZone] = useState('all');
     const [fEquip, setFEquip] = useState('all');
@@ -228,35 +237,62 @@ export default function CostControlPage({ tasks, costData, evaluationData, onBac
     const extraTasks = useMemo(() => {
         const fromScheduled = tasks.filter(t => t.isExtraTask);
 
-        const fromEvaluation: any[] = (evaluationData?.supplementaryTasks || []).map((st: any) => ({
-            id: st.id,
-            'GLOBAL TASKS': st.action || '',
-            'Nom Equipement': st.equipment || '',
-            FAMILLE: st.famille || '',
-            ZONE: st.zone || '',
-            DISCIPLINE: st.teamDetails?.[0]?.team || '',
-            EFFECTIF: st.teamDetails?.[0]?.manpower || 1,
-            DUREE: st.duration || 0,
-            'Heures-Homme': st.totalManHours || 0,
-            'PRICE FOR HH': 0,         // Cost already rolled up in totalCost
-            'MANUAL PRICE': 0,
-            'PDR COST': 0,
-            'Scaffolding manual Price': 0,
-            'Handling manual Price': 0,
-            'TOTAL TASK COST': st.totalCost || 0,
-            'TOTAL_COST': st.totalCost || 0,
-            isExtraTask: true,
-            subcontractors: st.subcontractors || [],
-            // Keep subcontractor detail for analytics breakdown
-            _suppTask: st,
-        }));
+        const fromEvaluation: any[] = (evaluationData?.supplementaryTasks || []).map((st: any) => {
+            const otStr = String(st.ot || '').trim();
+            let pdrCost = 0;
+            let scaffCost = 0;
+            let handCost = 0;
+            
+            if (otStr) {
+                if (scaffoldingRecords.length > 0) {
+                    scaffCost += scaffoldingRecords.filter(r => String(r.OT || '').trim() === otStr).reduce((s, r) => s + (r.totalPrice || 0), 0);
+                }
+                if (handlingRecords.length > 0) {
+                    handCost += handlingRecords.filter(r => String(r.OT || '').trim() === otStr).reduce((s, r) => s + (r.totalPrice || 0), 0);
+                }
+                if (pdrItems.length > 0) {
+                    pdrCost += pdrItems.filter(r => String(r.OT || '').trim() === otStr).reduce((s, r) => s + (r.totalPrice || 0), 0);
+                }
+                if (costHubEntries.length > 0) {
+                    const matchingEntries = costHubEntries.filter(e => String(e.OT || '').trim() === otStr);
+                    pdrCost += matchingEntries.filter(e => e.costType === 'PDR').reduce((sum, e) => sum + (Number(e.priceU) || 0), 0);
+                    scaffCost += matchingEntries.filter(e => e.costType === 'SCAFFOLDING' || e.costType === 'ECHAFAUDAGE').reduce((sum, e) => sum + (Number(e.priceU) || 0), 0);
+                    handCost += matchingEntries.filter(e => e.costType === 'HANDLING' || e.costType === 'MANUTENTION').reduce((sum, e) => sum + (Number(e.priceU) || 0), 0);
+                }
+            }
+
+            return {
+                id: st.id,
+                'GLOBAL TASKS': st.action || '',
+                'Nom Equipement': st.equipment || '',
+                FAMILLE: st.famille || '',
+                ZONE: st.zone || '',
+                DISCIPLINE: st.teamDetails?.[0]?.team || '',
+                EFFECTIF: st.teamDetails?.[0]?.manpower || 1,
+                DUREE: st.duration || 0,
+                'Heures-Homme': st.totalManHours || 0,
+                'PRICE FOR HH': 0,         // Cost already rolled up in totalCost
+                'MANUAL PRICE': 0,
+                'PDR COST': pdrCost,
+                'Scaffolding manual Price': scaffCost,
+                'Handling manual Price': handCost,
+                'SCAFFOLDING_COST': scaffCost,
+                'HANDLING_COST': handCost,
+                'TOTAL TASK COST': (st.totalCost || 0) + pdrCost + scaffCost + handCost,
+                'TOTAL_COST': (st.totalCost || 0) + pdrCost + scaffCost + handCost,
+                isExtraTask: true,
+                subcontractors: st.subcontractors || [],
+                // Keep subcontractor detail for analytics breakdown
+                _suppTask: st,
+            };
+        });
 
         // Avoid duplicates if the same task somehow ended up in both
         const scheduledIds = new Set(fromScheduled.map(t => String(t.id)));
         const uniqueFromEval = fromEvaluation.filter(t => !scheduledIds.has(String(t.id)));
 
         return [...fromScheduled, ...uniqueFromEval];
-    }, [tasks, evaluationData?.supplementaryTasks]);
+    }, [tasks, evaluationData?.supplementaryTasks, costHubEntries, scaffoldingRecords, handlingRecords, pdrItems]);
 
     // Total surcoût across all extra tasks
     const extraTotalCost = useMemo(() =>

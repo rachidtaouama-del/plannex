@@ -452,11 +452,51 @@ const TaskListModal: React.FC<{
     );
 };
 
+interface ActionConfirmModalProps {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmText?: string;
+    confirmColor?: 'red' | 'blue' | 'emerald';
+}
+
+const ActionConfirmModal: React.FC<ActionConfirmModalProps> = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirmer', confirmColor = 'blue' }) => {
+    if (!isOpen) return null;
+    const colorClasses = {
+        red: 'bg-red-600 hover:bg-red-500 shadow-red-500/20',
+        blue: 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20',
+        emerald: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
+    };
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#0f172a] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                <h3 className="text-xl font-black text-white mb-2">{title}</h3>
+                <p className="text-sm text-slate-400 mb-6">{message}</p>
+                <div className="flex justify-end gap-3">
+                    <button onClick={onCancel} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">Annuler</button>
+                    <button onClick={onConfirm} className={`px-4 py-2 text-xs font-black text-white uppercase tracking-wider rounded-xl shadow-lg transition-all ${colorClasses[confirmColor]}`}>
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parameters, evaluationData, setEvaluationData, hotReviewState, setHotReviewState, onBack, isColdStopFlow, evaluationKpis, onSaveProject, hasUnsavedChanges, onAddExtraTask, costHubEntries }) => {
     const { startDate, endDate, dateFilteredTasks, selectedFamily, selectedEquipment, selectedDiscipline, selectedTeam, searchTerm, displayedStartDate, displayedEndDate, slippageAnalysis, sortConfig } = hotReviewState;
 
     const [evaluationHistory, setEvaluationHistory] = useState<EvaluationData[]>([]);
+    
+    // Confirmation States
+    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+    const [pendingStatusChange, setPendingStatusChange] = useState<{taskId: number, newStatus: TaskStatus} | null>(null);
+    const [pendingBulkStatusChange, setPendingBulkStatusChange] = useState<TaskStatus | null>(null);
+    const [pendingConfirmOngoing, setPendingConfirmOngoing] = useState<{taskId?: number, all?: boolean} | null>(null);
+
 
     const handleUndo = useCallback(() => {
         if (evaluationHistory.length === 0) return;
@@ -1916,7 +1956,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                     <option value="Annuler">Annulé</option>
                                 </select>
                                 <button
-                                    onClick={() => handleBulkStatusChange(bulkStatus as TaskStatus)}
+                                    onClick={() => setPendingBulkStatusChange(bulkStatus as TaskStatus)}
                                     disabled={!bulkStatus}
                                     className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-black py-2 px-6 rounded-xl text-[10px] uppercase tracking-widest transition-all disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
                                 >
@@ -2037,7 +2077,7 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                         <td className="px-4 py-4">
                                             <select
                                                 value={status}
-                                                onChange={(e) => handleTaskStatusChange(task.id, e.target.value as TaskStatus)}
+                                                onChange={(e) => setPendingStatusChange({taskId: task.id, newStatus: e.target.value as TaskStatus})}
                                                 className={`text-[10px] font-black uppercase tracking-widest rounded-lg px-3 py-1.5 border-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer w-28 text-center transition-all shadow-sm ${status === 'À Faire' ? 'bg-slate-700/50 text-slate-400' :
                                                     status === 'Fait' ? 'bg-emerald-500/20 text-emerald-400' :
                                                         status === 'Non Fait' ? 'bg-red-500/20 text-red-400' :
@@ -2179,6 +2219,8 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                     allTasks={results.scheduledTasks}
                 />
             )}
+
+
 
             <div>
                 {/* ═══ COMMAND BAR HEADER ═══ */}
@@ -2901,18 +2943,8 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                         <td className="px-6 py-4 text-right font-mono font-bold text-purple-400">{task.cost.toFixed(2)} MAD</td>
                                         <td className="px-6 py-4 text-center rounded-r-2xl">
                                             <div className="flex justify-center gap-2">
-                                                {/* Edit button */}
-                                                <button
-                                                    onClick={() => setEditingSuppTask(task as any)}
-                                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
-                                                    title="Modifier">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                    </svg>
-                                                </button>
                                                 {/* Delete button */}
-                                                <button onClick={() => handleDeleteSuppTask(task.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
+                                                <button onClick={() => setTaskToDelete(String(task.id))} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                         <polyline points="3 6 5 6 21 6"></polyline>
                                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -3199,11 +3231,10 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                                                         <div className="flex justify-center gap-2">
                                                             {!evaluationData.tasks[task.id]?.isConfirmed && (
                                                                 <button
-                                                                    onClick={() => handleConfirmTask(task.id)}
-                                                                    className="bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white p-2 rounded-xl transition-all border border-emerald-500/20"
-                                                                    title="Confirmer l'avancement"
+                                                                    className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white rounded-xl transition-all text-xs font-black uppercase tracking-widest border border-emerald-500/20 w-full"
+                                                                    onClick={() => setPendingConfirmOngoing({taskId: task.id})}
                                                                 >
-                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+                                                                    Confirmer
                                                                 </button>
                                                             )}
                                                             {isTracking ? (
@@ -3420,6 +3451,59 @@ const HotExecutionReview: React.FC<HotExecutionReviewProps> = ({ results, parame
                         </div>
                     </div>
                 )}
+
+                {/* Confirmation Modals */}
+                <ActionConfirmModal
+                    isOpen={taskToDelete !== null}
+                    title="Supprimer la tâche"
+                    message="Êtes-vous sûr de vouloir supprimer ce travail supplémentaire ?"
+                    onConfirm={() => {
+                        if (taskToDelete) handleDeleteSuppTask(taskToDelete);
+                        setTaskToDelete(null);
+                    }}
+                    onCancel={() => setTaskToDelete(null)}
+                    confirmText="Supprimer"
+                    confirmColor="red"
+                />
+
+                <ActionConfirmModal
+                    isOpen={pendingStatusChange !== null}
+                    title="Modifier le statut"
+                    message="Êtes-vous sûr de vouloir changer le statut de cette tâche ?"
+                    onConfirm={() => {
+                        if (pendingStatusChange) handleTaskStatusChange(pendingStatusChange.taskId, pendingStatusChange.newStatus);
+                        setPendingStatusChange(null);
+                    }}
+                    onCancel={() => setPendingStatusChange(null)}
+                />
+
+                <ActionConfirmModal
+                    isOpen={pendingBulkStatusChange !== null}
+                    title="Modification groupée"
+                    message="Voulez-vous vraiment changer le statut de toutes les tâches affichées ?"
+                    onConfirm={() => {
+                        if (pendingBulkStatusChange) handleBulkStatusChange(pendingBulkStatusChange);
+                        setPendingBulkStatusChange(null);
+                    }}
+                    onCancel={() => setPendingBulkStatusChange(null)}
+                />
+
+                <ActionConfirmModal
+                    isOpen={pendingConfirmOngoing !== null}
+                    title="Confirmer l'avancement"
+                    message={pendingConfirmOngoing?.all ? "Voulez-vous vraiment confirmer l'avancement de toutes les tâches en cours ?" : "Voulez-vous vraiment confirmer l'avancement de cette tâche ?"}
+                    onConfirm={() => {
+                        if (pendingConfirmOngoing?.all) {
+                            handleConfirmAllOngoing();
+                        } else if (pendingConfirmOngoing?.taskId) {
+                            handleConfirmTask(pendingConfirmOngoing.taskId);
+                        }
+                        setPendingConfirmOngoing(null);
+                    }}
+                    onCancel={() => setPendingConfirmOngoing(null)}
+                    confirmText="Confirmer l'avancement"
+                    confirmColor="emerald"
+                />
 
                 {/* Intel Slippage Toasts */}
                 <div className="fixed top-8 right-8 z-[100] flex flex-col gap-3 pointer-events-none">
