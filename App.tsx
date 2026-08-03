@@ -1200,6 +1200,14 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                     });
                   }
 
+                  // ── Recalculate cost fields (TOTAL_COST, MO_HH_COST, etc.) ──
+                  // These computed fields are not persisted in the save format, so we
+                  // recompute them from the raw pricing inputs + costHubEntries.
+                  if (Array.isArray(restoredState.tasks) && restoredState.tasks.length > 0) {
+                    const costHubMap = buildCostHubMap(restoredState.costHubEntries || []);
+                    restoredState.tasks.forEach((t: any) => computeTaskCosts(t, costHubMap));
+                  }
+
                   setSchedulingState(restoredState);
                 } else if (saved.results?.scheduledTasks?.length > 0) {
                   // Very old session: no schedulingState saved at all — synthesize a minimal one from results
@@ -1263,6 +1271,9 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                       pdrItems: st.pdrItems || [],
                     };
                   });
+                  // Old sessions have no costHubEntries, but still recalculate from manual prices
+                  const legacyCostMap = buildCostHubMap([]);
+                  reconstructedTasks.forEach((t: any) => computeTaskCosts(t, legacyCostMap));
                   setSchedulingState({
                     tasks: reconstructedTasks,
                     pdrItems: [],
