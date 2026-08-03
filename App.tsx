@@ -679,11 +679,15 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     }
   }, [activePage]);
 
-  // Auto-save evaluationData on every change to prevent data loss when leaving HotExecutionReview
+  // Auto-save evaluationData with a 1-second debounce to prevent UI freezing
   useEffect(() => {
-    if (activeProject?.id && evaluationData) {
+    if (!activeProject?.id || !evaluationData) return;
+    
+    const timeoutId = setTimeout(() => {
       saveEvalData(activeProject.id, evaluationData);
-    }
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
   }, [evaluationData, activeProject?.id]);
 
   const handleBackToDashboard = () => {
@@ -987,7 +991,7 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
       case 'planner':
         return renderPlannerPage();
       case 'hot_execution_review':
-        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={handleBackToPlannerDashboard} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={handleSaveProjectStable} hasUnsavedChanges={hasUnsavedChanges} onAddExtraTask={handleAddExtraTask} costHubEntries={schedulingState?.costHubEntries || []} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
+        return isAuthenticated && evaluationData && evaluationKpis ? <div className="px-4 sm:px-6 lg:px-8 py-8"><HotExecutionReview results={schedulingResults!} parameters={schedulingParams!} evaluationData={evaluationData} setEvaluationData={handleSetEvaluationData} hotReviewState={hotReviewState} setHotReviewState={setHotReviewState} onBack={handleBackToPlannerDashboard} isColdStopFlow={isColdStopFlow} evaluationKpis={evaluationKpis} onSaveProject={handleSaveProjectStable} hasUnsavedChanges={hasUnsavedChanges} onAddExtraTask={handleAddExtraTask} costHubEntries={schedulingState?.costHubEntries} /></div> : <LandingPage onEnterApp={handleEnterApp} setPage={handleSetPage} />;
       case 'what_if_scenario':
         return isAuthenticated && schedulingResults ? (
           <WhatIfScenarioPage
