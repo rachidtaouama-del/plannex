@@ -1611,7 +1611,7 @@ const SchedulingPage: React.FC<SchedulingPageProps> = ({
     const [currentFile, setCurrentFile] = useState<File | null>(initialState?.currentFile ?? null);
     const [dailyDurationLimit, setDailyDurationLimit] = useState(initialState?.dailyDurationLimit ?? 0);
     const [shiftStartTime, setShiftStartTime] = useState(initialState?.shiftStartTime ?? '07:00');
-    const [internalEvaluationData, setInternalEvaluationData] = useState<EvaluationData | null>(initialState?.evaluationData || evaluationData || null);
+    const [internalEvaluationData, setInternalEvaluationData] = useState<EvaluationData | null>(evaluationData || initialState?.evaluationData || null);
     const [costData, setCostData] = useState<CompanyCost[]>(initialState?.costData ?? []);
     // New multi-sheet domain state
     const [costHubEntries, setCostHubEntries] = useState(initialState?.costHubEntries ?? []);
