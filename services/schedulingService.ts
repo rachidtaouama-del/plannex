@@ -1214,6 +1214,20 @@ export const calculateSchedule = (tasks: SchedulingTaskData[], params: AppParame
             pdrItems: task.pdrItems || [],
             ZONE: task.ZONE,
             COMPANY: task.COMPANY,
+            // ── Persist computed cost fields so they survive save/restore ──
+            'TOTAL_COST': task['TOTAL_COST'] ?? 0,
+            'MO_HH_COST': task['MO_HH_COST'] ?? 0,
+            'PRESTATION_COST': task['PRESTATION_COST'] ?? 0,
+            'TASK_COST': task['TASK_COST'] ?? 0,
+            'COST_TYPE': task['COST_TYPE'] ?? '',
+            'SCAFFOLDING_COST': task['SCAFFOLDING_COST'] ?? 0,
+            'HANDLING_COST': task['HANDLING_COST'] ?? 0,
+            'POSTE NUMBER': task['POSTE NUMBER'] ?? '',
+            'POSTE DESCRIPTION': task['POSTE DESCRIPTION'] ?? '',
+            QT: task.QT ?? 0,
+            'Additional Cost': task['Additional Cost'] ?? 0,
+            subcontractors: task.subcontractors || [],
+            isLeadTaskForOT: task.isLeadTaskForOT,
         };
     });
 

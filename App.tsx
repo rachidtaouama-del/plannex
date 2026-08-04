@@ -1162,6 +1162,20 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                         'TOTAL TASK COST': st['TOTAL TASK COST'] ?? 0,
                         'PDR COST': st['PDR COST'] ?? 0,
                         pdrItems: st.pdrItems || [],
+                        // ── Computed cost fields (persisted since v1.2.41) ──
+                        'TOTAL_COST': st['TOTAL_COST'] ?? st['TOTAL TASK COST'] ?? 0,
+                        'MO_HH_COST': st['MO_HH_COST'] ?? 0,
+                        'PRESTATION_COST': st['PRESTATION_COST'] ?? 0,
+                        'TASK_COST': st['TASK_COST'] ?? 0,
+                        'COST_TYPE': st['COST_TYPE'] ?? '',
+                        'SCAFFOLDING_COST': st['SCAFFOLDING_COST'] ?? 0,
+                        'HANDLING_COST': st['HANDLING_COST'] ?? 0,
+                        'POSTE NUMBER': st['POSTE NUMBER'] ?? '',
+                        'POSTE DESCRIPTION': st['POSTE DESCRIPTION'] ?? '',
+                        QT: st.QT ?? 0,
+                        'Additional Cost': st['Additional Cost'] ?? 0,
+                        subcontractors: st.subcontractors || [],
+                        isLeadTaskForOT: st.isLeadTaskForOT,
                       };
                     });
                   }
@@ -1200,13 +1214,8 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                     });
                   }
 
-                  // ── Recalculate cost fields (TOTAL_COST, MO_HH_COST, etc.) ──
-                  // These computed fields are not persisted in the save format, so we
-                  // recompute them from the raw pricing inputs + costHubEntries.
-                  if (Array.isArray(restoredState.tasks) && restoredState.tasks.length > 0) {
-                    const costHubMap = buildCostHubMap(restoredState.costHubEntries || []);
-                    restoredState.tasks.forEach((t: any) => computeTaskCosts(t, costHubMap));
-                  }
+                  // Cost fields are now persisted directly on ScheduledTask objects (since v1.2.41),
+                  // so no recalculation is needed here.
 
                   setSchedulingState(restoredState);
                 } else if (saved.results?.scheduledTasks?.length > 0) {
@@ -1269,11 +1278,22 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
                       'TOTAL TASK COST': st['TOTAL TASK COST'] ?? 0,
                       'PDR COST': st['PDR COST'] ?? 0,
                       pdrItems: st.pdrItems || [],
+                      // ── Computed cost fields (persisted since v1.2.41) ──
+                      'TOTAL_COST': st['TOTAL_COST'] ?? st['TOTAL TASK COST'] ?? 0,
+                      'MO_HH_COST': st['MO_HH_COST'] ?? 0,
+                      'PRESTATION_COST': st['PRESTATION_COST'] ?? 0,
+                      'TASK_COST': st['TASK_COST'] ?? 0,
+                      'COST_TYPE': st['COST_TYPE'] ?? '',
+                      'SCAFFOLDING_COST': st['SCAFFOLDING_COST'] ?? 0,
+                      'HANDLING_COST': st['HANDLING_COST'] ?? 0,
+                      'POSTE NUMBER': st['POSTE NUMBER'] ?? '',
+                      'POSTE DESCRIPTION': st['POSTE DESCRIPTION'] ?? '',
+                      QT: st.QT ?? 0,
+                      'Additional Cost': st['Additional Cost'] ?? 0,
+                      subcontractors: st.subcontractors || [],
+                      isLeadTaskForOT: st.isLeadTaskForOT,
                     };
                   });
-                  // Old sessions have no costHubEntries, but still recalculate from manual prices
-                  const legacyCostMap = buildCostHubMap([]);
-                  reconstructedTasks.forEach((t: any) => computeTaskCosts(t, legacyCostMap));
                   setSchedulingState({
                     tasks: reconstructedTasks,
                     pdrItems: [],
