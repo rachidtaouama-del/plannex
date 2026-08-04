@@ -516,8 +516,26 @@ const App: React.FC<{ licenseSession: LicenseSession; onLicenseLogout?: () => vo
     if (!activeProject) return;
 
     if (schedulingResults && schedulingParams) {
-      // 1. COMPLETELY PLANNED PROJECT — 3 independent writes
-      const tasksSaved = saveTasksData(activeProject.id, schedulingResults.scheduledTasks);
+      // ── Enrich ScheduledTask objects with cost fields from schedulingState ──
+      // schedulingResults.scheduledTasks is a lightweight format that lacks cost fields.
+      // schedulingState.tasks has the full SchedulingTaskData with computed costs.
+      // We merge cost fields from the full data into the lightweight tasks before saving.
+      const costFieldKeys = ['TOTAL_COST', 'MO_HH_COST', 'PRESTATION_COST', 'TASK_COST', 'COST_TYPE', 'SCAFFOLDING_COST', 'HANDLING_COST', 'POSTE NUMBER', 'POSTE DESCRIPTION', 'QT', 'Additional Cost', 'subcontractors', 'isLeadTaskForOT', 'TOTAL TASK COST', 'PRICE FOR HH', 'MANUAL PRICE', 'PDR COST', 'Scaffolding manual Price', 'Handling manual Price'] as const;
+      let tasksToSave = schedulingResults.scheduledTasks;
+      if (schedulingState?.tasks?.length) {
+        const costLookup = new Map<any, any>();
+        schedulingState.tasks.forEach((t: any) => costLookup.set(t.id, t));
+        tasksToSave = schedulingResults.scheduledTasks.map((st: any) => {
+          const full = costLookup.get(st.id);
+          if (!full) return st;
+          const enriched = { ...st };
+          costFieldKeys.forEach(k => {
+            if (full[k] !== undefined && full[k] !== null) enriched[k] = full[k];
+          });
+          return enriched;
+        });
+      }
+      const tasksSaved = saveTasksData(activeProject.id, tasksToSave);
       const metaSaved = saveProjectSession(activeProject.id, schedulingResults, schedulingParams, schedulingState);
       const evalSaved = saveEvalData(activeProject.id, evaluationData);
 
