@@ -45,32 +45,32 @@ const ContactLink: React.FC<{ href: string; label: string; sub?: string }> = ({ 
 
 const faqs = [
     {
-        q: "Comment PlanneX est-il tarifé ?",
-        a: "PlanneX adopte un modèle de tarification 100% personnalisé. Chaque entreprise a des besoins uniques en termes de taille d'équipes, de volume de projets, de personnalisation et d'intégrations internes. Nous évaluons votre contexte opérationnel et proposons une offre adaptée à votre réalité industrielle."
+        q: "How is PlanneX priced?",
+        a: "PlanneX uses a 100% customized pricing model. Every company has unique needs in terms of team size, project volume, customization, and internal integrations. We evaluate your operational context and propose an offer tailored to your industrial reality."
     },
     {
-        q: "Pourquoi PlanneX n'intègre pas SAP ou d'autres ERP ?",
-        a: "PlanneX est une plateforme souveraine avec sa propre base de données propriétaire. Nous ne permettons délibérément aucune intégration à des tiers (SAP, Oracle, etc.) pour garantir la sécurité maximale de vos données sensibles, prévenir les failles de synchronisation et assurer une performance optimale. Vos projets restent exclusivement sur nos serveurs sécurisés."
+        q: "Why doesn't PlanneX integrate with SAP or other ERPs?",
+        a: "PlanneX is a sovereign platform with its own proprietary database. We deliberately prevent any third-party integrations (SAP, Oracle, etc.) to guarantee maximum security for your sensitive data, prevent synchronization vulnerabilities, and ensure optimal performance. Your projects remain exclusively on our secure servers."
     },
     {
-        q: "Où sont hébergées les données de nos projets ?",
-        a: "Toutes vos données industrielles sont exclusivement hébergées sur les serveurs PlanneX. Aucun projet, aucune tâche, aucune ressource ne transite par des services cloud tiers. Nous contrôlons l'infrastructure de A à Z pour vous garantir une confidentialité absolue et une disponibilité maximale."
+        q: "Where is our project data hosted?",
+        a: "All your industrial data is exclusively hosted on PlanneX servers. No project, no task, no resource passes through third-party cloud services. We control the infrastructure from A to Z to guarantee absolute confidentiality and maximum availability."
     },
     {
-        q: "Peut-on personnaliser PlanneX pour notre organisation ?",
-        a: "Absolument. C'est même notre proposition de valeur principale. PlanneX est livré comme une solution clé-en-main intégralement adaptée à votre organisation : nomenclature interne, flux de validation, logique métier, rapports aux couleurs de votre entreprise, et bien plus. Aucune concession. Un outil qui parle votre langage industriel."
+        q: "Can PlanneX be customized for our organization?",
+        a: "Absolutely. That's our core value proposition. PlanneX is delivered as a fully turnkey solution adapted to your organization: internal nomenclature, validation workflows, business logic, company-branded reports, and much more. No compromises. A tool that speaks your industrial language."
     },
     {
-        q: "Quel est le processus pour devenir client ?",
-        a: "Contactez-nous via nos adresses email officielles. Notre équipe analyse votre contexte (taille d'arrêt, disciplines, volume de tâches, nombre d'utilisateurs), réalise un audit de vos besoins, et vous soumet une proposition commerciale détaillée avec une démonstration personnalisée sur votre propre environnement."
+        q: "What is the process to become a client?",
+        a: "Contact us via our official email addresses. Our team analyzes your context (shutdown size, disciplines, task volume, number of users), performs an audit of your needs, and submits a detailed commercial proposal with a personalized demonstration on your own environment."
     },
     {
-        q: "Y a-t-il une période d'essai ou de pilote ?",
-        a: "Oui. Selon votre profil, nous proposons un programme pilote structuré sur vos données réelles, accompagné par notre équipe technique, afin que vous puissiez mesurer la valeur de PlanneX sur un vrai arrêt avant tout engagement définitif."
+        q: "Is there a trial or pilot period?",
+        a: "Yes. Depending on your profile, we offer a structured pilot program on your real data, supported by our technical team, so you can measure PlanneX's value on an actual shutdown before any final commitment."
     },
     {
-        q: "PlanneX propose-t-il un partenariat commercial ?",
-        a: "Nous sommes ouverts à des partenariats stratégiques avec des sociétés d'ingénierie, des consultants industriels ou des intégrateurs de solutions. Toute demande de partenariat doit être adressée directement à notre équipe fondatrice via contact@rachidtaouama.com."
+        q: "Does PlanneX offer commercial partnerships?",
+        a: "We are open to strategic partnerships with engineering firms, industrial consultants, or solution integrators. Any partnership request must be addressed directly to our founding team via contact@rachidtaouama.com."
     },
 ];
 
@@ -104,28 +104,26 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
             </div>
 
             <div className="relative z-10">
-                {/* ─────────────────────────────────────────────
-                    HERO
-                ───────────────────────────────────────────── */}
+                {/* ── HERO ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 pt-40 pb-28 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/8 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.4em] mb-10">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Plateforme Industrielle · Tarification Sur Mesure
+                        Industrial Platform · Custom Pricing
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     </div>
 
                     <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter uppercase leading-[0.85] mb-8">
-                        Une Seule<br />
+                        One Single<br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 via-emerald-300 to-cyan-400">
                             Solution.
                         </span>
                     </h1>
 
                     <p className="text-xl md:text-2xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed mb-6">
-                        PlanneX n'est pas un abonnement SaaS générique. C'est une plateforme industrielle de planification déployée <span className="text-white font-black">exclusivement dans votre organisation</span>, configurée selon vos processus, et protégée sur nos serveurs souverains.
+                        PlanneX is not a generic SaaS subscription. It is an industrial planning platform deployed <span className="text-white font-black">exclusively within your organization</span>, configured to your processes, and protected on our sovereign servers.
                     </p>
                     <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
-                        Chaque contrat est unique. Chaque déploiement est sur mesure. Chaque euro investi génère un ROI mesurable dès le premier arrêt.
+                        Every contract is unique. Every deployment is custom-built. Every dollar invested generates measurable ROI from the very first shutdown.
                     </p>
 
                     <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
@@ -134,19 +132,17 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                             style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                             <Mail className="w-4 h-4 relative z-10" />
-                            <span className="relative z-10">Demander un Devis</span>
+                            <span className="relative z-10">Request a Quote</span>
                         </a>
                         <button onClick={() => setPage?.('contact')}
                             className="flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] text-slate-300 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-all active:scale-95">
                             <Building2 className="w-4 h-4" />
-                            Parler à un Expert
+                            Talk to an Expert
                         </button>
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    DATA SOVEREIGNTY BANNER
-                ───────────────────────────────────────────── */}
+                {/* ── DATA SOVEREIGNTY BANNER ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 mb-28">
                     <div className="relative rounded-[2rem] overflow-hidden border border-red-500/15 bg-gradient-to-r from-red-950/20 via-[#0a0614]/50 to-red-950/20 p-8 md:p-10">
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
@@ -156,31 +152,29 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <Pill color="red">Politique Officielle</Pill>
+                                    <Pill color="red">Official Policy</Pill>
                                 </div>
                                 <h3 className="text-xl font-black text-white tracking-tight mb-2">
-                                    Aucune Intégration Tierce Autorisée
+                                    No Third-Party Integration Allowed
                                 </h3>
                                 <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                                    PlanneX <span className="text-white font-black">ne s'intègre à aucun système externe</span> — ni SAP, ni Oracle, ni Salesforce, ni aucun ERP, CMMS ou cloud tiers. Cette décision est délibérée et non négociable. Votre base de données industrielle reste exclusivement sur nos serveurs sécurisés, hors de portée de toute application externe. Zéro vecteur d'exposition. Zéro compromis sur la souveraineté de vos données.
+                                    PlanneX <span className="text-white font-black">does not integrate with any external system</span> — not SAP, not Oracle, not Salesforce, nor any ERP, CMMS, or third-party cloud. This decision is deliberate and non-negotiable. Your industrial database remains exclusively on our secure servers, out of reach of any external application. Zero exposure vectors. Zero compromises on data sovereignty.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    THREE VALUE PILLARS
-                ───────────────────────────────────────────── */}
+                {/* ── THREE VALUE PILLARS ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 mb-28">
                     <div className="text-center mb-16">
-                        <Pill>Modèle d'Acquisition</Pill>
+                        <Pill>Acquisition Model</Pill>
                         <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white mt-4 mb-4">
-                            Pourquoi un Modèle<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Entièrement Personnalisé ?</span>
+                            Why a Fully<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Customized Model?</span>
                         </h2>
                         <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">
-                            Parce qu'aucun arrêt de maintenance ne ressemble à un autre. Parce qu'aucune équipe industrielle ne mérite un outil générique.
+                            Because no maintenance shutdown is the same. Because no industrial team deserves a generic tool.
                         </p>
                     </div>
 
@@ -190,28 +184,28 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                                 icon: <Cpu className="w-6 h-6" />,
                                 accent: '16,185,129',
                                 color: '#10b981',
-                                tag: 'Déploiement',
-                                title: 'Adapté à Votre Organisation',
-                                text: 'PlanneX est livré comme un vrai produit clé-en-main : nomenclature interne, workflows de validation, rapports aux couleurs de votre entreprise, règles métier spécifiques à votre secteur. Ce n\'est pas un template. C\'est votre outil.',
-                                items: ['Configuration des disciplines internes', 'Logique métier personnalisée', 'Rapports branding entreprise', 'Formation sur-mesure des équipes'],
+                                tag: 'Deployment',
+                                title: 'Tailored to Your Organization',
+                                text: 'PlanneX is delivered as a true turnkey product: internal nomenclature, validation workflows, company-branded reports, sector-specific business rules. It\'s not a template. It\'s your tool.',
+                                items: ['Internal discipline configuration', 'Custom business logic', 'Company-branded reports', 'Custom team training'],
                             },
                             {
                                 icon: <Server className="w-6 h-6" />,
                                 accent: '99,102,241',
                                 color: '#6366f1',
-                                tag: 'Sécurité',
-                                title: 'Vos Données. Nos Serveurs. Personne d\'Autre.',
-                                text: 'Chaque projet, chaque tâche, chaque ressource est hébergée exclusivement sur l\'infrastructure PlanneX. Nous contrôlons l\'intégralité de la chaîne de données. Aucun tiers. Aucune fuite. Aucun compromis.',
-                                items: ['Serveurs dédiés par client', 'Chiffrement AES-256 de bout en bout', 'Sauvegardes automatisées sécurisées', 'Audit de sécurité sur demande'],
+                                tag: 'Security',
+                                title: 'Your Data. Our Servers. Nobody Else.',
+                                text: 'Every project, every task, every resource is hosted exclusively on PlanneX infrastructure. We control the entire data chain. No third parties. No leaks. No compromises.',
+                                items: ['Dedicated servers per client', 'End-to-end AES-256 encryption', 'Automated secure backups', 'Security audit on request'],
                             },
                             {
                                 icon: <Star className="w-6 h-6" />,
                                 accent: '245,158,11',
                                 color: '#f59e0b',
-                                tag: 'Partenariat',
-                                title: 'Un Contrat à Votre Mesure',
-                                text: 'Le prix de PlanneX reflète la réalité de votre déploiement : taille des arrêts, nombre d\'utilisateurs, niveau de personnalisation, support nécessaire. Pas de plan générique. Pas de case à cocher. Une conversation. Une proposition. Un accord.',
-                                items: ['Tarification basée sur votre contexte', 'Pilote sur données réelles disponible', 'Engagement progressif possible', 'ROI mesurable dès le 1er arrêt'],
+                                tag: 'Partnership',
+                                title: 'A Contract Built for You',
+                                text: 'PlanneX pricing reflects your deployment reality: shutdown size, number of users, level of customization, required support. No generic plans. No checkboxes. A conversation. A proposal. An agreement.',
+                                items: ['Context-based pricing', 'Pilot on real data available', 'Progressive engagement possible', 'Measurable ROI from day 1'],
                             },
                         ].map(card => (
                             <div key={card.tag} className="relative rounded-[2rem] border border-white/[0.06] bg-white/[0.02] p-8 flex flex-col hover:border-white/10 transition-all duration-500 group overflow-hidden">
@@ -242,32 +236,30 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    WHAT'S INCLUDED
-                ───────────────────────────────────────────── */}
+                {/* ── WHAT'S INCLUDED ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 mb-28">
                     <div className="rounded-[2rem] border border-white/[0.06] bg-white/[0.015] overflow-hidden">
                         <div className="grid md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
                             <div className="p-10 lg:p-14">
                                 <div className="mb-8">
-                                    <Pill>Inclus dans Chaque Déploiement</Pill>
-                                    <h2 className="text-3xl font-black text-white tracking-tight mt-4 mb-3">Ce Que PlanneX Vous Apporte</h2>
-                                    <p className="text-slate-500 text-sm font-medium">Quel que soit votre contrat, ces capacités font partie du cœur de la plateforme.</p>
+                                    <Pill>Included in Every Deployment</Pill>
+                                    <h2 className="text-3xl font-black text-white tracking-tight mt-4 mb-3">What PlanneX Delivers</h2>
+                                    <p className="text-slate-500 text-sm font-medium">Regardless of your contract, these capabilities are part of the platform's core.</p>
                                 </div>
                                 <div className="space-y-0 divide-y divide-white/[0.04]">
                                     {[
-                                        'Planification Dynamique Gantt 3.0 — Interactif, temps réel',
-                                        'Moteur IA NeuralPath Scheduler — Ordonnancement automatisé',
-                                        'Analyse du Chemin Critique — Visualisation et alertes',
-                                        'Dashboard Mission Control 4K — Vue opérationnelle complète',
-                                        'Exports PDF & PPTX Board-Ready — Présentations décisionnelles',
-                                        'Gestion des Co-activités Industrielles — Prévention des conflits',
-                                        'Alertes de Glissement Temps Réel — Détection proactive',
-                                        'Suivi des Pièces de Rechange (PDR) — Logistique intégrée',
-                                        'Évaluation à Chaud Post-Arrêt — Analyse de performance',
-                                        'Navigation Carte & QR — Guidage terrain équipes',
-                                        'Tableau de Bord Readiness — Taux de préparation global',
-                                        'Support Technique Dédié — Accompagnement continu',
+                                        'Dynamic Gantt Planning 3.0 — Interactive, real-time',
+                                        'NeuralPath AI Scheduler Engine — Automated scheduling',
+                                        'Critical Path Analysis — Visualization and alerts',
+                                        'Mission Control 4K Dashboard — Complete operational view',
+                                        'Board-Ready PDF & PPTX Exports — Decision-level presentations',
+                                        'Industrial Co-Activity Management — Conflict prevention',
+                                        'Real-Time Slippage Alerts — Proactive detection',
+                                        'Spare Parts Tracking (PDR) — Integrated logistics',
+                                        'Post-Shutdown Hot Evaluation — Performance analysis',
+                                        'Map & QR Navigation — Field team guidance',
+                                        'Readiness Dashboard — Overall preparation rate',
+                                        'Dedicated Technical Support — Continuous assistance',
                                     ].map(f => (
                                         <FeatureRow key={f}>{f}</FeatureRow>
                                     ))}
@@ -275,24 +267,24 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                             </div>
                             <div className="p-10 lg:p-14">
                                 <div className="mb-8">
-                                    <Pill color="blue">Personnalisation Avancée</Pill>
-                                    <h2 className="text-3xl font-black text-white tracking-tight mt-4 mb-3">Ce Que Nous Configurons Pour Vous</h2>
-                                    <p className="text-slate-500 text-sm font-medium">Les éléments adaptés spécifiquement à votre organisation dans le cadre du déploiement entreprise.</p>
+                                    <Pill color="blue">Advanced Customization</Pill>
+                                    <h2 className="text-3xl font-black text-white tracking-tight mt-4 mb-3">What We Configure for You</h2>
+                                    <p className="text-slate-500 text-sm font-medium">Elements specifically adapted to your organization as part of the enterprise deployment.</p>
                                 </div>
                                 <div className="space-y-0 divide-y divide-white/[0.04]">
                                     {[
-                                        'Nomenclature interne (disciplines, unités, zones)',
-                                        'Règles métier et flux de validation personnalisés',
-                                        'Rapports PDF aux couleurs et logo de l\'entreprise',
-                                        'Comptes utilisateurs illimités avec gestion des rôles',
-                                        'Domaine exclusif et marque blanche optionnelle',
-                                        'Serveurs dédiés — aucune ressource partagée',
-                                        'Formation personnalisée des équipes planification',
-                                        'Intégration avec vos propres référentiels GMAO internes',
-                                        'Sauvegardes périodiques et archivage des projets',
-                                        'SLA de disponibilité garanti par contrat',
-                                        'Tableau de bord analytique historique multi-arrêts',
-                                        'Accès API interne (sur demande, selon contrat)',
+                                        'Internal nomenclature (disciplines, units, zones)',
+                                        'Custom business rules and validation workflows',
+                                        'Company-branded PDF reports with your logo',
+                                        'Unlimited user accounts with role management',
+                                        'Exclusive domain and optional white-label',
+                                        'Dedicated servers — no shared resources',
+                                        'Custom planning team training',
+                                        'Integration with your own internal CMMS references',
+                                        'Periodic backups and project archiving',
+                                        'Contractually guaranteed SLA availability',
+                                        'Multi-shutdown historical analytics dashboard',
+                                        'Internal API access (on request, per contract)',
                                     ].map(f => (
                                         <FeatureRow key={f} accent="blue">{f}</FeatureRow>
                                     ))}
@@ -302,55 +294,53 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    RULES & TERMS
-                ───────────────────────────────────────────── */}
+                {/* ── RULES & TERMS ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 mb-28">
                     <div className="text-center mb-14">
-                        <Pill color="amber">Règles & Conditions Commerciales</Pill>
+                        <Pill color="amber">Rules & Commercial Terms</Pill>
                         <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white mt-4 mb-3">
-                            La Transparence<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">comme Principe</span>
+                            Transparency<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">as a Principle</span>
                         </h2>
-                        <p className="text-slate-500 text-lg font-medium max-w-xl mx-auto">Ce que vous devez savoir avant tout engagement avec PlanneX.</p>
+                        <p className="text-slate-500 text-lg font-medium max-w-xl mx-auto">What you need to know before any engagement with PlanneX.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {[
                             {
                                 icon: <Building2 className="w-5 h-5" />,
-                                title: 'Réservé aux Entreprises',
-                                text: 'PlanneX est une solution exclusivement B2B. Elle est conçue pour des organisations industrielles, des sociétés d\'ingénierie, des équipes de maintenance et des contractants spécialisés. Les souscriptions individuelles ne sont pas disponibles.',
+                                title: 'Enterprise Only',
+                                text: 'PlanneX is an exclusively B2B solution. It is designed for industrial organizations, engineering firms, maintenance teams, and specialized contractors. Individual subscriptions are not available.',
                                 color: '16,185,129',
                             },
                             {
                                 icon: <Lock className="w-5 h-5" />,
-                                title: 'Aucune Intégration Tierce',
-                                text: 'PlanneX n\'est connecté à aucun système externe. SAP, Oracle, Maximo, MS Project ou tout autre logiciel tiers ne peuvent interagir directement avec la plateforme. La ségrégation totale des données est une condition non négociable.',
+                                title: 'No Third-Party Integration',
+                                text: 'PlanneX is not connected to any external system. SAP, Oracle, Maximo, MS Project, or any other third-party software cannot interact directly with the platform. Total data segregation is a non-negotiable condition.',
                                 color: '239,68,68',
                             },
                             {
                                 icon: <Shield className="w-5 h-5" />,
-                                title: 'Données Hébergées par PlanneX',
-                                text: 'L\'intégralité de vos projets, ressources, tâches, chronogrammes et rapports est hébergée sur nos serveurs. Vous pouvez exporter vos données à tout moment. Aucun tiers ne peut accéder à votre espace sans votre consentement explicite.',
+                                title: 'Data Hosted by PlanneX',
+                                text: 'All your projects, resources, tasks, schedules, and reports are hosted on our servers. You can export your data at any time. No third party can access your space without your explicit consent.',
                                 color: '99,102,241',
                             },
                             {
                                 icon: <Sparkles className="w-5 h-5" />,
-                                title: 'Tarification Toujours Sur Mesure',
-                                text: 'Il n\'existe pas de grille tarifaire publique fixe pour PlanneX. Le prix est établi en fonction de la taille de votre organisation, du volume d\'arrêts, du niveau de personnalisation requis et des engagements de support souhaités.',
+                                title: 'Always Custom Pricing',
+                                text: 'There is no fixed public pricing grid for PlanneX. The price is established based on the size of your organization, shutdown volume, required customization level, and desired support commitments.',
                                 color: '245,158,11',
                             },
                             {
                                 icon: <User className="w-5 h-5" />,
-                                title: 'Partenariats Sélectifs',
-                                text: 'PlanneX sélectionne ses partenaires commerciaux avec soin. Les sociétés souhaitant revendre, intégrer ou recommander PlanneX à leurs clients doivent soumettre une demande formelle à l\'équipe fondatrice. Les partenariats non sollicités ne sont pas acceptés.',
+                                title: 'Selective Partnerships',
+                                text: 'PlanneX carefully selects its commercial partners. Companies wishing to resell, integrate, or recommend PlanneX to their clients must submit a formal request to the founding team. Unsolicited partnerships are not accepted.',
                                 color: '6,182,212',
                             },
                             {
                                 icon: <Zap className="w-5 h-5" />,
-                                title: 'Propriété Intellectuelle Protégée',
-                                text: 'Le codebase, les algorithmes, les modèles IA et la base de données de PlanneX sont la propriété exclusive de Rachid Taouama. Toute reproduction, extraction ou ingénierie inverse est formellement interdite et fera l\'objet de poursuites légales.',
+                                title: 'Protected Intellectual Property',
+                                text: 'The codebase, algorithms, AI models, and PlanneX database are the exclusive property of Rachid Taouama. Any reproduction, extraction, or reverse engineering is formally prohibited and will be subject to legal action.',
                                 color: '236,72,153',
                             },
                         ].map(rule => (
@@ -366,14 +356,12 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    FAQ
-                ───────────────────────────────────────────── */}
+                {/* ── FAQ ── */}
                 <section className="max-w-4xl mx-auto px-6 mb-28">
                     <div className="text-center mb-14">
-                        <Pill>Questions Fréquentes</Pill>
+                        <Pill>Frequently Asked Questions</Pill>
                         <h2 className="text-4xl font-black tracking-tighter text-white mt-4 mb-3">
-                            Tout ce que vous<br />devez savoir.
+                            Everything you<br />need to know.
                         </h2>
                     </div>
                     <div className="space-y-3">
@@ -381,12 +369,9 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    CONTACT SECTION
-                ───────────────────────────────────────────── */}
+                {/* ── CONTACT SECTION ── */}
                 <section className="max-w-5xl mx-auto px-6 mb-28">
                     <div className="relative rounded-[2.5rem] overflow-hidden border border-emerald-500/15 p-12 lg:p-20 text-center">
-                        {/* Background glow */}
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/30 via-[#020617] to-indigo-950/20" />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-500/[0.06] rounded-full blur-[100px] pointer-events-none" />
                         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
@@ -395,32 +380,32 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                         <div className="relative z-10">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/8 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-[0.4em] mb-8">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                Discutons de Votre Projet
+                                Let's Discuss Your Project
                             </div>
                             <h2 className="text-5xl md:text-6xl font-black tracking-tighter text-white mb-6 leading-[0.9]">
-                                Prêt à Transformer
+                                Ready to Transform
                                 <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400">
-                                    Vos Arrêts ?
+                                    Your Shutdowns?
                                 </span>
                             </h2>
                             <p className="text-lg text-slate-400 font-medium max-w-2xl mx-auto mb-14 leading-relaxed">
-                                Contactez notre équipe pour une analyse personnalisée de vos besoins. Nous vous répondons sous 24 heures ouvrables avec une proposition adaptée à votre réalité industrielle.
+                                Contact our team for a personalized analysis of your needs. We respond within 24 business hours with a proposal tailored to your industrial reality.
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-3xl mx-auto text-left mb-12">
                                 <div>
-                                    <p className="text-[9px] font-black text-emerald-500/70 uppercase tracking-[0.4em] mb-4">Équipe Commerciale & Support</p>
+                                    <p className="text-[9px] font-black text-emerald-500/70 uppercase tracking-[0.4em] mb-4">Sales Team & Support</p>
                                     <div className="space-y-3">
-                                        <ContactLink href="mailto:membership@plannex.ai" label="membership@plannex.ai" sub="Partenariats & Souscriptions" />
-                                        <ContactLink href="mailto:support@plannex.ai" label="support@plannex.ai" sub="Support Technique & Questions" />
+                                        <ContactLink href="mailto:membership@plannex.ai" label="membership@plannex.ai" sub="Partnerships & Subscriptions" />
+                                        <ContactLink href="mailto:support@plannex.ai" label="support@plannex.ai" sub="Technical Support & Questions" />
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-[9px] font-black text-indigo-400/70 uppercase tracking-[0.4em] mb-4">Fondateur & Direction</p>
+                                    <p className="text-[9px] font-black text-indigo-400/70 uppercase tracking-[0.4em] mb-4">Founder & Leadership</p>
                                     <div className="space-y-3">
-                                        <ContactLink href="mailto:contact@rachidtaouama.com" label="contact@rachidtaouama.com" sub="Rachid Taouama — Fondateur" />
-                                        <ContactLink href="mailto:rachid.taouama@gmail.com" label="rachid.taouama@gmail.com" sub="Contact Direct Fondateur" />
+                                        <ContactLink href="mailto:contact@rachidtaouama.com" label="contact@rachidtaouama.com" sub="Rachid Taouama — Founder" />
+                                        <ContactLink href="mailto:rachid.taouama@gmail.com" label="rachid.taouama@gmail.com" sub="Founder Direct Contact" />
                                     </div>
                                 </div>
                             </div>
@@ -431,27 +416,25 @@ export const PricingPage: React.FC<{ setPage?: (page: any) => void }> = ({ setPa
                                     style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                                     <Mail className="w-4 h-4 relative z-10" />
-                                    <span className="relative z-10">Contacter PlanneX</span>
+                                    <span className="relative z-10">Contact PlanneX</span>
                                 </a>
                                 <button onClick={() => setPage?.('contact')}
                                     className="px-10 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] text-slate-300 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-all active:scale-95">
-                                    Page Contact
+                                    Contact Page
                                 </button>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* ─────────────────────────────────────────────
-                    TRUST BAR
-                ───────────────────────────────────────────── */}
+                {/* ── TRUST BAR ── */}
                 <section className="w-full mx-auto px-6 lg:px-12 2xl:px-24 pb-24">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {[
-                            { icon: <Shield className="w-5 h-5" />, label: 'Données 100% Sécurisées', sub: 'Chiffrement AES-256', color: '16,185,129' },
-                            { icon: <Server className="w-5 h-5" />, label: 'Serveurs Souverains', sub: 'Hébergement dédié', color: '99,102,241' },
-                            { icon: <Globe className="w-5 h-5" />, label: 'Zéro Intégration Tierce', sub: 'Architecture fermée & sûre', color: '245,158,11' },
-                            { icon: <Zap className="w-5 h-5" />, label: 'Support Réactif', sub: 'Réponse < 24h ouvrables', color: '6,182,212' },
+                            { icon: <Shield className="w-5 h-5" />, label: '100% Secure Data', sub: 'AES-256 Encryption', color: '16,185,129' },
+                            { icon: <Server className="w-5 h-5" />, label: 'Sovereign Servers', sub: 'Dedicated hosting', color: '99,102,241' },
+                            { icon: <Globe className="w-5 h-5" />, label: 'Zero Third-Party Integration', sub: 'Closed & secure architecture', color: '245,158,11' },
+                            { icon: <Zap className="w-5 h-5" />, label: 'Responsive Support', sub: 'Response < 24 business hours', color: '6,182,212' },
                         ].map(t => (
                             <div key={t.label} className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"

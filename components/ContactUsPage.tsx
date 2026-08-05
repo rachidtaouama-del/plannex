@@ -67,12 +67,12 @@ export const ContactUsPage: React.FC = () => {
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-6 leading-none">
-                        CONTACTEZ <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500">L'ÉQUIPE PLANNEX</span>
+                        CONTACT <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500">THE PLANNEX TEAM</span>
                     </h1>
 
                     <p className="text-slate-400 max-w-2xl text-lg leading-relaxed">
-                        Pour toute demande de démonstration, partenariat stratégique ou support technique, nos ingénieurs sont à votre disposition.
+                        For any demonstration request, strategic partnership, or technical support, our engineers are at your service.
                     </p>
                 </div>
 
@@ -86,7 +86,7 @@ export const ContactUsPage: React.FC = () => {
                             </div>
                             <h3 className="text-white font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Canaux Directs
+                                Direct Channels
                             </h3>
 
                             <div className="space-y-8">
@@ -95,7 +95,7 @@ export const ContactUsPage: React.FC = () => {
                                         <Mail size={18} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter mb-1">E-mail Officiel</p>
+                                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter mb-1">Official Email</p>
                                         <a href="mailto:contact@rachidtaouama.com" className="text-white font-bold hover:text-emerald-400 transition-colors">contact@rachidtaouama.com</a>
                                     </div>
                                 </div>
@@ -104,8 +104,8 @@ export const ContactUsPage: React.FC = () => {
                                         <MessageSquare size={18} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter mb-1">Support Client</p>
-                                        <p className="text-white font-bold">Assistance 24/7 pour Entreprises</p>
+                                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter mb-1">Client Support</p>
+                                        <p className="text-white font-bold">24/7 Enterprise Assistance</p>
                                     </div>
                                 </div>
 
@@ -117,7 +117,7 @@ export const ContactUsPage: React.FC = () => {
                         <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
                             <CheckCircle className="text-emerald-500 flex-shrink-0" size={20} />
                             <p className="text-[10px] font-mono text-emerald-500/80 leading-relaxed uppercase tracking-wider">
-                                Toutes les communications sont chiffrées via le protocole TLS 1.3. Vos données sont traitées conformément à notre Politique de Confidentialité.
+                                All communications are encrypted via TLS 1.3 protocol. Your data is processed in accordance with our Privacy Policy.
                             </p>
                         </div>
                     </div>
@@ -131,27 +131,27 @@ export const ContactUsPage: React.FC = () => {
                                     <div className="w-24 h-24 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-8 shadow-[0_0_50px_rgba(16,185,129,0.2)]">
                                         <CheckCircle size={48} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">MESSAGE TRANSMIS</h2>
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">MESSAGE TRANSMITTED</h2>
                                     <p className="text-slate-400 max-w-sm mb-10">
-                                        Votre demande a été enregistrée avec succès. Un de nos ingénieurs reviendra vers vous sous 24h.
+                                        Your request has been successfully recorded. One of our engineers will get back to you within 24 hours.
                                     </p>
                                     <button
                                         onClick={() => setIsSubmitted(false)}
                                         className="px-8 py-3 rounded-full border border-emerald-500/50 text-emerald-400 font-bold hover:bg-emerald-500/10 transition-all uppercase text-xs tracking-widest"
                                     >
-                                        Envoyer une autre demande
+                                        Send another request
                                     </button>
                                 </div>
                             ) : (
                                 <form onSubmit={handleSubmit} className="relative z-10">
                                     <div className="grid md:grid-cols-2 gap-8">
-                                        <InputField label="Nom Complet" name="user_name" placeholder="John Doe" />
-                                        <InputField label="Adresse E-mail" name="user_email" type="email" placeholder="john@company.com" />
+                                        <InputField label="Full Name" name="user_name" placeholder="John Doe" />
+                                        <InputField label="Email Address" name="user_email" type="email" placeholder="john@company.com" />
                                     </div>
 
-                                    <InputField label="Sujet de votre demande" name="subject" placeholder="Démonstration PlanneX Engine" />
+                                    <InputField label="Subject of your request" name="subject" placeholder="PlanneX Engine Demonstration" />
 
-                                    <InputField label="votre message" name="message" textarea placeholder="Décrivez vos besoins industriels..." />
+                                    <InputField label="Your message" name="message" textarea placeholder="Describe your industrial needs..." />
 
                                     <div className="flex flex-col items-center md:items-start">
                                         <button
@@ -164,13 +164,13 @@ export const ContactUsPage: React.FC = () => {
                                             ) : (
                                                 <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                             )}
-                                            {loading ? 'TRANSMISSION EN COURS...' : 'ENVOYER L\'UPLINK'}
+                                            {loading ? 'TRANSMITTING...' : 'SEND UPLINK'}
 
                                             <div className="absolute inset-0 rounded-2xl border border-white/50 animate-ping opacity-0 group-hover:opacity-20"></div>
                                         </button>
 
                                         <p className="mt-6 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-                                            Estimation de réponse : <span className="text-emerald-500">&lt; 24 Heures</span>
+                                            Estimated response: <span className="text-emerald-500">&lt; 24 Hours</span>
                                         </p>
                                     </div>
                                 </form>

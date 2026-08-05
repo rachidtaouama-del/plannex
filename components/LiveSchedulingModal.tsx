@@ -376,13 +376,12 @@ export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
         setTimeout(() => setNotification(null), 3000);
     };
 
-    const handleSaveAndClose = () => {
+    const handleSave = () => {
         onSave(localTasks);
         setNotification({ msg: 'Modifications enregistrées.', type: 'success' });
         setTimeout(() => {
             setNotification(null);
-            onClose();
-        }, 1000);
+        }, 3000);
     };
 
     const handleColorChange = (disciplineName: string, color: string) => {
@@ -510,9 +509,9 @@ export const LiveSchedulingModal: React.FC<LiveSchedulingModalProps> = ({
                         Assistant {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
                     </button>
 
-                    {/* Save & Close */}
+                    {/* Save */}
                     <button
-                        onClick={handleSaveAndClose}
+                        onClick={handleSave}
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/40 active:scale-95"
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 13l4 4L19 7" /></svg>

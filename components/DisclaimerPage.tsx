@@ -33,31 +33,25 @@ export const DisclaimerPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#020202] relative overflow-hidden font-sans selection:bg-emerald-500/30 pb-32">
             <GridBg />
-
-            {/* Ambient Background Glows */}
             <div className="absolute top-[-5%] left-[-20%] w-[60%] h-[60%] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="absolute bottom-[-5%] right-[-20%] w-[60%] h-[60%] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
 
             <main className="relative z-10 pt-32 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto">
-
-                    {/* ═══ HERO SECTION ═══════════════════════════════════ */}
                     <div className="text-center mb-24">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/5 border border-amber-500/20 text-amber-500 text-[10px] font-mono tracking-[0.3em] uppercase mb-8">
                             <AlertTriangle className="w-3 h-3" />
                             Legal Safety Protocol
                         </div>
                         <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 uppercase leading-none">
-                            Avis de <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400 leading-tight">Non-Responsabilité</span>
+                            Legal <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400 leading-tight">Disclaimer</span>
                         </h1>
                         <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium">
-                            Conditions d'utilisation et limitations légales relatives aux algorithmes de planification **PlanneX**.
+                            Terms of use and legal limitations relating to **PlanneX** planning algorithms.
                         </p>
                     </div>
 
                     <div className="space-y-12">
-
-                        {/* Summary Intro */}
                         <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 relative overflow-hidden">
                             <ShieldOff className="absolute -bottom-4 -right-4 w-32 h-32 text-amber-500/5 rotate-12" />
                             <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
@@ -65,64 +59,60 @@ export const DisclaimerPage: React.FC = () => {
                                     <HardHat className="w-10 h-10 text-amber-500" />
                                 </div>
                                 <p className="text-lg text-slate-200 leading-relaxed font-bold italic">
-                                    "L'intelligence artificielle est un assistant, pas un ingénieur.
-                                    La validation humaine sur le terrain reste l'autorité suprême de sécurité."
+                                    "Artificial intelligence is an assistant, not an engineer.
+                                    Human validation in the field remains the supreme safety authority."
                                 </p>
                             </div>
                         </div>
 
-                        {/* 1. NATURE OF THE TOOL */}
-                        <DisclaimerSection title="1. Nature de l'Outil et Fourniture" icon={ZapOff} critical>
+                        <DisclaimerSection title="1. Nature of the Tool and Provision" icon={ZapOff} critical>
                             <p>
-                                L'application web **PlanneX** ("l'Outil") est fournie **"en l'état"** et **"selon disponibilité"**, sans aucune garantie d'aucune sorte, expresse ou implicite.
+                                The **PlanneX** web application ("the Tool") is provided **"as is"** and **"as available"**, without any warranty of any kind, express or implied.
                             </p>
                             <p>
-                                Bien que nous nous efforcions d'assurer une disponibilité maximale, nous ne garantissons pas que l'Outil sera exempt d'interruptions, d'erreurs logicielles ou de bugs de calcul liés à la complexité des modèles d'IA sous-jacents.
+                                While we strive to ensure maximum availability, we do not guarantee that the Tool will be free from interruptions, software errors, or calculation bugs related to the complexity of the underlying AI models.
                             </p>
                         </DisclaimerSection>
 
-                        {/* 2. DATA ACCURACY */}
-                        <DisclaimerSection title="2. Exactitude des Données et Algorithmes" icon={Info}>
+                        <DisclaimerSection title="2. Data Accuracy and Algorithms" icon={Info}>
                             <p>
-                                La qualité, la précision et la pertinence des plannings, des chemins critiques et des analyses de co-activités générés par **PlanneX** dépendent exclusivement :
+                                The quality, accuracy, and relevance of schedules, critical paths, and co-activity analyses generated by **PlanneX** depend exclusively on:
                             </p>
                             <ul className="space-y-4 pt-4">
                                 <li className="flex gap-4">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></div>
-                                    <p><strong className="text-slate-200">Qualité de l'Input :</strong> De l'exactitude des extraits SAP, CMMS ou fichiers Excel importés.</p>
+                                    <p><strong className="text-slate-200">Input Quality:</strong> The accuracy of imported SAP extracts, CMMS data, or Excel files.</p>
                                 </li>
                                 <li className="flex gap-4">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></div>
-                                    <p><strong className="text-slate-200">Probabilités Probabilistes :</strong> Les estimations de durée par l'IA sont basées sur des modèles linguistiques et statistiques et ne constituent pas une certitude mathématique.</p>
+                                    <p><strong className="text-slate-200">Probabilistic Estimates:</strong> AI duration estimates are based on linguistic and statistical models and do not constitute mathematical certainty.</p>
                                 </li>
                             </ul>
                         </DisclaimerSection>
 
-                        {/* 3. JUDGEMENT CALL */}
-                        <DisclaimerSection title="3. Responsabilité de Validation" icon={ClipboardCheck}>
+                        <DisclaimerSection title="3. Validation Responsibility" icon={ClipboardCheck}>
                             <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 mb-6">
                                 <p className="text-slate-200 text-sm font-bold leading-relaxed italic">
-                                    **PlanneX** est un système d'aide à la décision (DSS). Il n'est en aucun cas destiné à remplacer le jugement professionnel, l'expertise d'un Shutdown Manager ou l'analyse d'un Ingénieur Méthode qualifié.
+                                    **PlanneX** is a Decision Support System (DSS). It is in no way intended to replace the professional judgment, expertise of a Shutdown Manager, or the analysis of a qualified Methods Engineer.
                                 </p>
                             </div>
                             <p>
-                                Il incombe à l'utilisateur de **vérifier, valider et approuver** tous les plannings avant leur mise en œuvre sur des sites industriels (SEVESO, pétrochimie, énergie, etc.) où une erreur de séquence peut entraîner des risques pour la sécurité des personnes et des installations.
+                                It is the user's responsibility to **verify, validate, and approve** all schedules before implementation on industrial sites (SEVESO, petrochemical, energy, etc.) where a sequencing error can lead to risks to the safety of people and facilities.
                             </p>
                         </DisclaimerSection>
 
-                        {/* 4. LIABILITY LIMITATION */}
-                        <DisclaimerSection title="4. Limitation de Responsabilité" icon={Scale} critical>
+                        <DisclaimerSection title="4. Limitation of Liability" icon={Scale} critical>
                             <p>
-                                En aucun cas Rachid Taouama ou **PlanneX** ne pourront être tenus responsables de dommages directs ou indirects, y compris mais sans s'y limiter :
+                                Under no circumstances shall Rachid Taouama or **PlanneX** be held liable for direct or indirect damages, including but not limited to:
                             </p>
                             <div className="grid sm:grid-cols-2 gap-4 mt-6">
                                 {[
-                                    "Pertes financières ou budgétaires.",
-                                    "Retards de chemin critique sur arrêt.",
-                                    "Accidents liés à des erreurs de co-activité.",
-                                    "Dysfonctionnements de machines.",
-                                    "Pertes de données ou de profits.",
-                                    "Réclamations de tiers/sous-traitants."
+                                    "Financial or budgetary losses.",
+                                    "Critical path delays during shutdown.",
+                                    "Accidents related to co-activity errors.",
+                                    "Machine malfunctions.",
+                                    "Data or profit losses.",
+                                    "Third-party/subcontractor claims."
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
                                         <ChevronRight className="w-3 h-3 text-amber-500" />
@@ -132,14 +122,12 @@ export const DisclaimerPage: React.FC = () => {
                             </div>
                         </DisclaimerSection>
 
-                        {/* 5. INTELLECTUAL PROPERTY */}
                         <div className="p-12 rounded-[3rem] bg-slate-900/60 border border-white/5 text-center">
-                            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6">Mises à Jour Régulières</h3>
+                            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6">Regular Updates</h3>
                             <p className="text-sm text-slate-500 leading-relaxed max-w-xl mx-auto">
-                                Nous nous réservons le droit de modifier cet avis à tout moment. Il est de votre responsabilité de consulter régulièrement cette page pour prendre connaissance des éventuels changements.
+                                We reserve the right to modify this notice at any time. It is your responsibility to regularly consult this page to be aware of any changes.
                             </p>
                         </div>
-
                     </div>
                 </div>
             </main>

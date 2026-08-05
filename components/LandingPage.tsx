@@ -280,11 +280,11 @@ const LandingPage: React.FC<{ onEnterApp: () => void; setPage: (page: any) => vo
                             subtitle="The Legacy Standard"
                             delay="0.1s"
                             items={[
-                                { text: "UI/UX Complexe & Daté", success: false, ghost: true },
-                                { text: "Rapports Difficiles à personnaliser", success: false, ghost: true },
-                                { text: "Gestion de projet avancée", success: true },
-                                { text: "Analyse IA Non Intégrée", success: false, ghost: true },
-                                { text: "Coût Très Élevé", success: false, ghost: true }
+                                { text: "Complex & Outdated UI/UX", success: false, ghost: true },
+                                { text: "Hard-to-Customize Reports", success: false, ghost: true },
+                                { text: "Advanced Project Management", success: true },
+                                { text: "No Integrated AI Analysis", success: false, ghost: true },
+                                { text: "Very High Cost", success: false, ghost: true }
                             ]}
                         />
 
@@ -294,12 +294,12 @@ const LandingPage: React.FC<{ onEnterApp: () => void; setPage: (page: any) => vo
                             subtitle="The Modern Engine"
                             delay="0s"
                             items={[
-                                { text: "UI/UX Intuitive & Réactive", success: true },
-                                { text: "Intelligence Artificielle Intégrée", success: true },
-                                { text: "Dashboards Interactifs Temps Réel", success: true },
-                                { text: "Export Multi-Format (PDF/PPT)", success: true },
-                                { text: "Gestion Visuelle du Chemin Critique", success: true },
-                                { text: "Collaboration Multi-Utilisateurs", success: true }
+                                { text: "Intuitive & Responsive UI/UX", success: true },
+                                { text: "Built-In Artificial Intelligence", success: true },
+                                { text: "Real-Time Interactive Dashboards", success: true },
+                                { text: "Multi-Format Export (PDF/PPT)", success: true },
+                                { text: "Visual Critical Path Management", success: true },
+                                { text: "Multi-User Collaboration", success: true }
                             ]}
                         />
 
@@ -308,11 +308,11 @@ const LandingPage: React.FC<{ onEnterApp: () => void; setPage: (page: any) => vo
                             subtitle="The Desktop Utility"
                             delay="0.2s"
                             items={[
-                                { text: "UI/UX Familier mais limité", success: false, ghost: true },
-                                { text: "Rapports Statiques", success: false, ghost: true },
-                                { text: "Intégration Office Native", success: true },
-                                { text: "Absence d'Analyse Prédictive", success: false, ghost: true },
-                                { text: "Déploiement Complexe en Cloud", success: false, ghost: true }
+                                { text: "Familiar but Limited UI/UX", success: false, ghost: true },
+                                { text: "Static Reports", success: false, ghost: true },
+                                { text: "Native Office Integration", success: true },
+                                { text: "No Predictive Analysis", success: false, ghost: true },
+                                { text: "Complex Cloud Deployment", success: false, ghost: true }
                             ]}
                         />
                     </div>

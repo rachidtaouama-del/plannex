@@ -84,12 +84,12 @@ export const AboutUsPage: React.FC = () => {
                 </div>
 
                 <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter text-center uppercase leading-none mb-6">
-                    L'EXPERT DERRIÈRE <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 animate-gradient-x underline decoration-emerald-500/20 underline-offset-8">L'INNOVATION</span>
+                    THE EXPERT BEHIND <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 animate-gradient-x underline decoration-emerald-500/20 underline-offset-8">THE INNOVATION</span>
                 </h1>
 
                 <p className="text-slate-400 text-center max-w-2xl text-lg leading-relaxed animate-fade-in-up">
-                    Fusionner l'expertise métier de terrain avec la puissance du développement moderne pour redéfinir l'ordonnancement industriel.
+                    Merging hands-on field expertise with the power of modern development to redefine industrial scheduling.
                 </p>
             </div>
 
@@ -152,27 +152,27 @@ export const AboutUsPage: React.FC = () => {
                         </div>
 
                         <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-8">
-                            DU TERRAIN À LA <span className="italic text-emerald-400 underline decoration-emerald-500/20">TRANSFORMATION</span> DIGITALE
+                            FROM THE FIELD TO DIGITAL <span className="italic text-emerald-400 underline decoration-emerald-500/20">TRANSFORMATION</span>
                         </h2>
 
                         <div className="space-y-6 text-slate-400 text-lg leading-relaxed">
                             <p className="relative">
                                 <span className="absolute -left-10 top-0 text-7xl font-serif text-emerald-500/10 leading-none">"</span>
-                                Fort d'une expérience significative en tant que planificateur dans des environnements industriels critiques, j'ai été confronté aux limites des outils traditionnels. La frustration née de rapports incohérents et du manque de visibilité stratégique n'était plus acceptable.
+                                With significant experience as a planner in critical industrial environments, I faced the limitations of traditional tools. The frustration born from inconsistent reports and the lack of strategic visibility was no longer acceptable.
                             </p>
                             <p>
-                                J'ai vu des décisions capitales retardées par des données confuses et des équipes de terrain désorientées. <strong className="text-white">PlanneX est la réponse directe à ces échecs</strong> — une plateforme conçue par un expert de terrain pour les experts de terrain.
+                                I saw critical decisions delayed by confusing data and disoriented field teams. <strong className="text-white">PlanneX is the direct answer to these failures</strong> — a platform designed by a field expert for field experts.
                             </p>
 
                             <blockquote className="bg-emerald-500/5 border-l-4 border-emerald-500 p-8 rounded-tr-3xl rounded-br-3xl my-10 relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(16,185,129,0.05),transparent)]"></div>
                                 <p className="text-white text-xl md:text-2xl font-bold font-serif italic mb-2 relative z-10">
-                                    "PlanneX n'est pas juste un logiciel. C'est l'outil que j'aurais rêvé d'avoir : traduire la complexité brute en clarté stratégique absolue."
+                                    "PlanneX is not just software. It's the tool I always dreamed of having: translating raw complexity into absolute strategic clarity."
                                 </p>
                             </blockquote>
 
                             <p>
-                                En fusionnant ingénierie de planification et développement Full-Stack, j'ai bâti un écosystème qui ne se contente pas de gérer des tâches, mais qui <strong className="text-emerald-400">pilote la performance réelle</strong>.
+                                By merging planning engineering and Full-Stack development, I built an ecosystem that doesn't just manage tasks, but <strong className="text-emerald-400">drives real performance</strong>.
                             </p>
                         </div>
                     </div>
@@ -182,16 +182,16 @@ export const AboutUsPage: React.FC = () => {
             {/* Tactical Ecosystem Section */}
             <section className="relative z-10 py-32 px-6 lg:px-12 2xl:px-24 w-full mx-auto">
                 <div className="text-center mb-20">
-                    <h3 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-6">L'ÉCOSYSTÈME <span className="text-emerald-500">RACHID</span></h3>
+                    <h3 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase mb-6">THE <span className="text-emerald-500">RACHID</span> ECOSYSTEM</h3>
                     <div className="h-1 w-24 bg-emerald-500 mx-auto rounded-full mb-8"></div>
-                    <p className="text-slate-500 max-w-2xl mx-auto text-lg">Une suite d'outils industriels conçus pour la précision maximale, de la sécurité à la maintenance préventive.</p>
+                    <p className="text-slate-500 max-w-2xl mx-auto text-lg">A suite of industrial tools designed for maximum precision, from safety to preventive maintenance.</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
                     <ProjectCard
                         title="PlanneX Engine"
                         type="Enterprise Platform"
-                        desc="Le moteur d'ordonnancement ultime pour les arrêts techniques à haute complexité et les grands projets industriels."
+                        desc="The ultimate scheduling engine for high-complexity technical shutdowns and large-scale industrial projects."
                         link="#"
                         icon={<Database strokeWidth={1.5} />}
                         color="emerald"
@@ -199,7 +199,7 @@ export const AboutUsPage: React.FC = () => {
                     <ProjectCard
                         title="AI Predictor"
                         type="ML Analytics"
-                        desc="Moteur d'analyse prédictive utilisant le machine learning pour anticiper les dérives de planning avant qu'elles ne surviennent."
+                        desc="Predictive analysis engine using machine learning to anticipate schedule drifts before they occur."
                         link="https://predictor.plannex.ai/"
                         icon={<Code strokeWidth={1.5} />}
                         color="purple"
@@ -207,7 +207,7 @@ export const AboutUsPage: React.FC = () => {
                     <ProjectCard
                         title="PlanneX SHIELD"
                         type="Mobile Tactical App"
-                        desc="Créez et exportez des rapports d'observation de sécurité critiques en quelques minutes directement du terrain."
+                        desc="Create and export critical safety observation reports in minutes directly from the field."
                         link="https://shield.plannex.ai/"
                         icon={<Smartphone strokeWidth={1.5} />}
                         color="blue"
@@ -215,7 +215,7 @@ export const AboutUsPage: React.FC = () => {
                     <ProjectCard
                         title="PM Generator"
                         type="Cloud Scheduling Tool"
-                        desc="Génération automatisée de plannings de maintenance préventive avec exportations PDF/Excel prêtes à l'emploi."
+                        desc="Automated generation of preventive maintenance schedules with ready-to-use PDF/Excel exports."
                         link="https://pm.rachidtaouama.com/"
                         icon={<Globe strokeWidth={1.5} />}
                         color="amber"

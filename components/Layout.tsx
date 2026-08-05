@@ -648,7 +648,7 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
                     </button>
 
                     <p className="text-slate-400 text-sm leading-relaxed mb-10 max-w-sm">
-                        Conçu pour le chaos industriel. Le moteur de planification ultime transformant la complexité des machines en une clarté exécutive à toute épreuve.
+                        Built for industrial chaos. The ultimate planning engine transforming machine complexity into bulletproof executive clarity.
                     </p>
 
 
@@ -659,16 +659,16 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
                     <div className="flex flex-col">
                         <h4 className="flex items-center gap-3 text-[10px] font-black tracking-[0.2em] text-white uppercase mb-8">
                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                            Produit
+                            Product
                         </h4>
                         <ul className="space-y-4">
-                            <li><TerminalLink page="what-is" setPage={setPage}>Qu'est-ce que PlanneX ?</TerminalLink></li>
-                            <li><TerminalLink page="voir-la-demo" setPage={setPage}>Voir la démo</TerminalLink></li>
-                            <li><TerminalLink page="pricing" setPage={setPage}>Tarifs</TerminalLink></li>
+                            <li><TerminalLink page="what-is" setPage={setPage}>What is PlanneX?</TerminalLink></li>
+                            <li><TerminalLink page="voir-la-demo" setPage={setPage}>Watch Demo</TerminalLink></li>
+                            <li><TerminalLink page="pricing" setPage={setPage}>Pricing</TerminalLink></li>
                             <li className="pt-2">
                                 <button onClick={() => setPage('ebook')} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] uppercase tracking-widest px-3 py-2 rounded-md inline-flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                                    Télécharger l'E-book
+                                    Download E-book
                                 </button>
                             </li>
                         </ul>
@@ -676,22 +676,22 @@ const Footer: React.FC<{ setPage: (page: Page) => void; setIsVideoModalOpen: (is
                     <div className="flex flex-col">
                         <h4 className="flex items-center gap-3 text-[10px] font-black tracking-[0.2em] text-white uppercase mb-8">
                             <span className="w-1.5 h-1.5 bg-slate-500 rounded-sm"></span>
-                            Entreprise
+                            Company
                         </h4>
                         <ul className="space-y-4">
-                            <li><TerminalLink page="about" setPage={setPage}>À Propos</TerminalLink></li>
+                            <li><TerminalLink page="about" setPage={setPage}>About</TerminalLink></li>
                             <li><TerminalLink page="contact" setPage={setPage}>Contact</TerminalLink></li>
                         </ul>
                     </div>
                     <div className="flex flex-col">
                         <h4 className="flex items-center gap-3 text-[10px] font-black tracking-[0.2em] text-white uppercase mb-8">
                             <span className="w-1.5 h-1.5 bg-slate-500 rounded-sm"></span>
-                            Légal
+                            Legal
                         </h4>
                         <ul className="space-y-4">
-                            <li><TerminalLink page="privacy" setPage={setPage}>Confidentialité</TerminalLink></li>
-                            <li><TerminalLink page="gdpr" setPage={setPage}>Conformité RGPD</TerminalLink></li>
-                            <li><TerminalLink page="disclaimer" setPage={setPage}>Avertissement</TerminalLink></li>
+                            <li><TerminalLink page="privacy" setPage={setPage}>Privacy Policy</TerminalLink></li>
+                            <li><TerminalLink page="gdpr" setPage={setPage}>GDPR Compliance</TerminalLink></li>
+                            <li><TerminalLink page="disclaimer" setPage={setPage}>Disclaimer</TerminalLink></li>
                             <li><TerminalLink page="copyright" setPage={setPage}>Copyright</TerminalLink></li>
                         </ul>
                     </div>

@@ -57,11 +57,11 @@ export const WhatIsPlanexPage: React.FC = () => {
                             System Overview
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-5 uppercase leading-none">
-                            Qu'est-ce que <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">PlanneX</span> ?
+                            What is <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">PlanneX</span>?
                         </h1>
                         <div className="h-px w-20 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent mx-auto mb-7"></div>
                         <p className="text-lg text-slate-400 leading-relaxed max-w-3xl mx-auto">
-                            Un moteur d'ordonnancement industriel de nouvelle génération, propulsé par l'IA, conçu pour transformer la complexité des arrêts techniques en clarté exécutive totale.
+                            A next-generation industrial scheduling engine, powered by AI, designed to transform the complexity of technical shutdowns into total executive clarity.
                         </p>
                     </div>
 
@@ -78,31 +78,31 @@ export const WhatIsPlanexPage: React.FC = () => {
                         <div className="relative z-10">
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/15 text-emerald-400 text-[10px] font-mono tracking-widest uppercase mb-5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Guide de Référence Industriel
+                                Industrial Reference Guide
                             </div>
                             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase leading-none mb-4">
-                                Maîtriser l'Arrêt :<br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Le Guide Définitif PlanneX</span>
+                                Mastering the Shutdown:<br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">The Definitive PlanneX Guide</span>
                             </h2>
-                            <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed mb-6">Du chaos industriel brut à la commande stratégique totale — le cadre complet qui révolutionne la planification des arrêts techniques.</p>
+                            <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed mb-6">From raw industrial chaos to total strategic command — the complete framework that revolutionizes shutdown planning.</p>
                             <div className="flex items-center justify-center gap-6 text-[10px] font-mono text-slate-600 uppercase tracking-widest">
-                                <span>Mars 2026</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                                <span>Lecture : ~12 min</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                <span>March 2026</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                <span>Read: ~12 min</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span>
                                 <span>Expert-Level</span>
                             </div>
                         </div>
                     </div>
 
                     {/* ─── I. THE HIGH-STAKES LANDSCAPE ─────────────── */}
-                    <SectionBadge num="I" subLabel="Contexte Stratégique" label="Le Terrain de Jeu à Enjeux Extrêmes" color="#10b981" />
+                    <SectionBadge num="I" subLabel="Strategic Context" label="The High-Stakes Landscape" color="#10b981" />
                     <div className="grid lg:grid-cols-3 gap-5 mb-8">
                         <div className="lg:col-span-2">
                             <HCard>
                                 <p className="text-slate-300 leading-relaxed mb-4 text-sm">
-                                    Dans les environnements industriels haute pression — raffineries, centrales électriques, usines de fabrication massives — le temps est la devise la plus volatile. Nous ne mesurons pas les retards en heures ; nous les mesurons en <span className="text-emerald-400 font-semibold">"évaporation de capital" à des millions par minute.</span>
+                                    In high-pressure industrial environments — refineries, power plants, massive manufacturing facilities — time is the most volatile currency. We don't measure delays in hours; we measure them in <span className="text-emerald-400 font-semibold">"capital evaporation" at millions per minute.</span>
                                 </p>
                                 <p className="text-slate-400 leading-relaxed text-sm">
-                                    Les outils traditionnels, bien que familiers, n'ont jamais été conçus pour gérer l'ingestion de données haute densité et les interdépendances extrêmes d'un arrêt industriel moderne. Ils forcent les chefs de projet dans le rôle de <strong className="text-white">commis de saisie de données</strong>, plutôt que de commandants stratégiques.
+                                    Traditional tools, while familiar, were never designed to handle the high-density data ingestion and extreme interdependencies of a modern industrial shutdown. They force project managers into the role of <strong className="text-white">data entry clerks</strong>, rather than strategic commanders.
                                 </p>
                             </HCard>
                         </div>
@@ -110,8 +110,8 @@ export const WhatIsPlanexPage: React.FC = () => {
                             <HCard className="h-full flex flex-col justify-center bg-gradient-to-br from-red-950/40 to-slate-900/60 border-red-500/20">
                                 <div className="text-center">
                                     <div className="text-5xl font-black text-red-400 font-mono mb-2">1:1</div>
-                                    <p className="text-red-400/70 text-[10px] font-mono uppercase tracking-widest font-bold mb-3">Ratio Critique</p>
-                                    <p className="text-slate-500 text-xs leading-relaxed">1 heure de retard sur le Chemin Critique = 1 heure perdue sur la date finale. Sans exception.</p>
+                                    <p className="text-red-400/70 text-[10px] font-mono uppercase tracking-widest font-bold mb-3">Critical Ratio</p>
+                                    <p className="text-slate-500 text-xs leading-relaxed">1 hour of delay on the Critical Path = 1 hour lost on the final date. No exceptions.</p>
                                 </div>
                             </HCard>
                         </div>
@@ -121,14 +121,14 @@ export const WhatIsPlanexPage: React.FC = () => {
                     <div className="overflow-x-auto rounded-2xl border border-white/8 mb-8">
                         <table className="w-full text-xs">
                             <thead><tr className="bg-white/4 border-b border-white/8">
-                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Limitations des Outils Legacy</th>
-                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Réalité Industrielle</th>
+                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Legacy Tool Limitations</th>
+                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Industrial Reality</th>
                             </tr></thead>
                             <tbody>
                                 {[
-                                    ["Interface rigide & courbe d'apprentissage abrupte — rapports lents et datés.", "Complexité extrême : des milliers de 'chainages' (connexions logiques) interdépendants."],
-                                    ["Pourcentages vagues : \"80% terminé\" — zéro certitude mathématique pour la logique du planning.", "Conséquences financières élevées : chaque minute d'arrêt représente une perte de revenus irrécupérable."],
-                                    ["Gantts statiques illisibles : occultent le chemin critique et ignorent les risques en temps réel.", "Environnement dynamique : un retard sur la 'colonne vertébrale' du projet déclenche une cascade."],
+                                    ["Rigid interface & steep learning curve — slow and outdated reports.", "Extreme complexity: thousands of 'logical links' (dependencies) interconnected."],
+                                    ["Vague percentages: \"80% complete\" — zero mathematical certainty for scheduling logic.", "High financial consequences: every minute of downtime represents irrecoverable revenue loss."],
+                                    ["Unreadable static Gantts: obscure the critical path and ignore real-time risks.", "Dynamic environment: a delay on the project's 'backbone' triggers a cascade."],
                                 ].map(([a, b], i) => (
                                     <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                                         <td className="p-4 text-red-400/80 leading-relaxed">{a}</td>
@@ -141,32 +141,32 @@ export const WhatIsPlanexPage: React.FC = () => {
 
                     <div className="border-l-4 border-red-500/60 pl-6 py-2 bg-red-500/5 rounded-r-2xl mb-6">
                         <p className="text-slate-300 italic text-sm leading-relaxed">
-                            Ce déficit technique des outils existants crée une <strong className="text-white">latence dangereuse dans l'intervention</strong> et force les dirigeants à gérer à l'intuition plutôt qu'à la visibilité opérationnelle.
+                            This technical deficit in existing tools creates a <strong className="text-white">dangerous latency in intervention</strong> and forces leaders to manage by intuition rather than operational visibility.
                         </p>
                     </div>
 
                     <Divider color="emerald" />
 
                     {/* ─── II. SOFTWARE COMPARISON ────────────────────── */}
-                    <SectionBadge num="II" subLabel="Rapport Comparatif" label="L'Audit des Outils : PlanneX vs. les Solutions Legacy" color="#3b82f6" />
+                    <SectionBadge num="II" subLabel="Comparative Report" label="The Tool Audit: PlanneX vs. Legacy Solutions" color="#3b82f6" />
                     <HCard className="mb-6">
-                        <p className="text-slate-400 text-sm leading-relaxed mb-0">Un audit rigoureux des systèmes legacy révèle que, bien qu'ils aient servi de piliers historiques, leurs limitations structurelles créent désormais des <span className="text-white font-semibold">angles morts opérationnels critiques</span> pour les managers modernes.</p>
+                        <p className="text-slate-400 text-sm leading-relaxed mb-0">A rigorous audit of legacy systems reveals that, while they have served as historical pillars, their structural limitations now create <span className="text-white font-semibold">critical operational blind spots</span> for modern managers.</p>
                     </HCard>
                     <div className="overflow-x-auto rounded-2xl border border-white/8 mb-8">
                         <table className="w-full text-xs">
                             <thead><tr className="bg-white/4 border-b border-white/8">
-                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Critère</th>
+                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Criteria</th>
                                 <th className="text-left p-4 text-red-400/70 font-mono uppercase tracking-widest">MS Project</th>
                                 <th className="text-left p-4 text-orange-400/70 font-mono uppercase tracking-widest">Primavera P6</th>
                                 <th className="text-left p-4 text-emerald-400 font-mono uppercase tracking-widest">PlanneX ✓</th>
                             </tr></thead>
                             <tbody>
                                 {[
-                                    ["UI/UX", "Familier mais limité; interface rigide.", "Complexe, daté, courbe d'apprentissage notoire.", "Intuitif, moderne et architecture opérationnelle agile."],
-                                    ["Rapports", "Standards; faible flexibilité.", "Difficile à personnaliser; expertise spécialisée requise.", "Dashboards interactifs avec filtres exécutifs et drill-down."],
-                                    ["IA", "Inexistant ou superficiel.", "Non intégré; manque d'intelligence prédictive.", "IA embarquée pour optimisation et recommandations prédictives."],
-                                    ["Données", "Manuel et fastidieux.", "Complexe, saisie multi-étapes.", "Édition live, co-pilote IA, télémétrie en temps réel."],
-                                    ["Coût", "Modéré (abonnement).", "Élevé, complexe, souvent limité en licences.", "Abordable, flexible, adapté à l'entreprise moderne."],
+                                    ["UI/UX", "Familiar but limited; rigid interface.", "Complex, dated, notoriously steep learning curve.", "Intuitive, modern, and agile operational architecture."],
+                                    ["Reports", "Standard; low flexibility.", "Difficult to customize; specialized expertise required.", "Interactive dashboards with executive filters and drill-down."],
+                                    ["AI", "Non-existent or superficial.", "Not integrated; lacks predictive intelligence.", "Embedded AI for optimization and predictive recommendations."],
+                                    ["Data", "Manual and tedious.", "Complex, multi-step data entry.", "Live editing, AI co-pilot, real-time telemetry."],
+                                    ["Cost", "Moderate (subscription).", "High, complex, often license-limited.", "Affordable, flexible, designed for the modern enterprise."],
                                 ].map(([c, ms, p6, px], i) => (
                                     <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
                                         <td className="p-4 text-white font-semibold">{c}</td>
@@ -180,24 +180,24 @@ export const WhatIsPlanexPage: React.FC = () => {
                     </div>
                     <div className="border-l-4 border-blue-500 pl-6 py-2 bg-blue-500/5 rounded-r-2xl">
                         <p className="text-slate-300 italic text-sm leading-relaxed">
-                            Notre mandat central est l'<strong className="text-white">évolution du chef de projet</strong> : passer de la saisie de données manuelle à la supervision stratégique de haut niveau grâce à PlanneX.
+                            Our core mandate is the <strong className="text-white">evolution of the project manager</strong>: transitioning from manual data entry to high-level strategic oversight powered by PlanneX.
                         </p>
                     </div>
 
                     <Divider color="blue" />
 
                     {/* ─── PILLAR I ────────────────────────────────────── */}
-                    <SectionBadge num="I" subLabel="Pilier Fondamental" label="Planification Intelligente — Le Jumeau Numérique" color="#10b981" />
+                    <SectionBadge num="I" subLabel="Core Pillar" label="Intelligent Planning — The Digital Twin" color="#10b981" />
                     <HCard className="mb-6">
                         <p className="text-slate-300 text-sm leading-relaxed mb-3">
-                            Un plan maître n'est pas un document statique ; c'est la fondation essentielle de la gestion des risques. La première étape est la construction du <span className="text-emerald-400 font-semibold">Jumeau Numérique</span> — un modèle numérique complet qui sert de source de vérité unique. Il permet la <strong className="text-white">simulation préventive</strong> de l'arrêt complet, identifiant les goulots <em>avant</em> qu'ils ne se manifestent sur le terrain.
+                            A master plan is not a static document; it is the essential foundation of risk management. The first step is building the <span className="text-emerald-400 font-semibold">Digital Twin</span> — a complete digital model that serves as the single source of truth. It enables <strong className="text-white">preventive simulation</strong> of the entire shutdown, identifying bottlenecks <em>before</em> they manifest on the ground.
                         </p>
                     </HCard>
 
                     {/* Dual mode tabs */}
                     <div className="mb-6">
                         <div className="flex gap-2 mb-5">
-                            {["IA Co-pilote (Automatique)", "Contrôle Expert (Manuel)"].map((t, i) => (
+                            {["AI Co-pilot (Automatic)", "Expert Control (Manual)"].map((t, i) => (
                                 <button key={i} onClick={() => setActiveTab(i)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === i ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-slate-500 hover:text-white border border-white/10'}`}>{t}</button>
                             ))}
                         </div>
@@ -206,11 +206,11 @@ export const WhatIsPlanexPage: React.FC = () => {
                                 <div>
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
-                                        <span className="text-emerald-400 font-black text-sm uppercase tracking-widest">IA Co-pilote — Mode Actif</span>
+                                        <span className="text-emerald-400 font-black text-sm uppercase tracking-widest">AI Co-pilot — Active Mode</span>
                                     </div>
-                                    <p className="text-slate-300 text-sm leading-relaxed mb-3">Le système exploite l'IA pour analyser des <strong className="text-white">milliers de permutations en quelques secondes</strong>, identifiant la séquence de tâches la plus rapide pour minimiser la durée totale du projet. Cela redéfinit le rôle du planificateur : il passe de la saisie manuelle à la supervision stratégique de haut niveau.</p>
+                                    <p className="text-slate-300 text-sm leading-relaxed mb-3">The system leverages AI to analyze <strong className="text-white">thousands of permutations in seconds</strong>, identifying the fastest task sequence to minimize total project duration. This redefines the planner's role: shifting from manual data entry to high-level strategic oversight.</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {["Optimisation algorithmique", "Séquences optimales automatiques", "Surveillance stratégique"].map((t, i) => (
+                                        {["Algorithmic optimization", "Automatic optimal sequences", "Strategic oversight"].map((t, i) => (
                                             <span key={i} className="text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full uppercase tracking-widest">{t}</span>
                                         ))}
                                     </div>
@@ -219,11 +219,11 @@ export const WhatIsPlanexPage: React.FC = () => {
                                 <div>
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-2.5 h-2.5 bg-blue-400 rounded-full"></div>
-                                        <span className="text-blue-400 font-black text-sm uppercase tracking-widest">Contrôle Expert — Mode Tactique</span>
+                                        <span className="text-blue-400 font-black text-sm uppercase tracking-widest">Expert Control — Tactical Mode</span>
                                     </div>
-                                    <p className="text-slate-300 text-sm leading-relaxed mb-3">Pour les professionnels expérimentés nécessitant une <strong className="text-white">précision chirurgicale</strong>, ce mode fournit un commandement manuel absolu sur les séquences et les timings. Il garantit que les nuances spécifiques du site et l'intuition professionnelle sont pleinement respectées.</p>
+                                    <p className="text-slate-300 text-sm leading-relaxed mb-3">For experienced professionals requiring <strong className="text-white">surgical precision</strong>, this mode provides absolute manual command over sequences and timings. It ensures that site-specific nuances and professional intuition are fully respected.</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {["Commandement granulaire", "Autorité totale", "Nuance terrain intégrée"].map((t, i) => (
+                                        {["Granular command", "Total authority", "Field nuance integrated"].map((t, i) => (
                                             <span key={i} className="text-[10px] font-mono bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1 rounded-full uppercase tracking-widest">{t}</span>
                                         ))}
                                     </div>
@@ -232,15 +232,15 @@ export const WhatIsPlanexPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <HCard title="Le Gantt Dynamique — La Carte Vivante du Projet" titleColor="emerald">
+                    <HCard title="The Dynamic Gantt — The Living Project Map" titleColor="emerald">
                         <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                            Contrairement aux documents statiques du passé, le Gantt de PlanneX est une <strong className="text-white">carte interactive vivante</strong>. Via la "propagation d'impact automatisée," les utilisateurs font glisser des éléments pour voir l'<span className="text-emerald-400">effet d'entraînement en temps réel</span> d'un changement sur l'ensemble du planning.
+                            Unlike the static documents of the past, PlanneX's Gantt is a <strong className="text-white">living interactive map</strong>. Through "automated impact propagation," users drag elements to see the <span className="text-emerald-400">real-time ripple effect</span> of a change across the entire schedule.
                         </p>
                         <div className="grid sm:grid-cols-3 gap-3 mt-4">
                             {[
-                                { icon: "⚡", label: "Optimisation IA", desc: "Identifie la séquence la plus rapide et les affectations de ressources optimales." },
-                                { icon: "🗓️", label: "Ancrage Réel", desc: "Intègre des calendriers réels (3x8, 2x10) — un guide d'exécution faisable, pas une fantasie." },
-                                { icon: "🗺️", label: "Filtrage Spatial", desc: "Filtrage par zones de la centrale ou shifts pour un contrôle localisé et isolé." }
+                                { icon: "⚡", label: "AI Optimization", desc: "Identifies the fastest sequence and optimal resource assignments." },
+                                { icon: "🗓️", label: "Real-World Anchoring", desc: "Integrates real calendars (3x8, 2x10) — a feasible execution guide, not a fantasy." },
+                                { icon: "🗺️", label: "Spatial Filtering", desc: "Filter by plant zones or shifts for localized, isolated control." }
                             ].map((item, i) => (
                                 <div key={i} className="p-4 rounded-xl bg-black/30 border border-white/5 hover:border-emerald-500/20 transition-colors">
                                     <div className="text-2xl mb-2">{item.icon}</div>
@@ -254,38 +254,38 @@ export const WhatIsPlanexPage: React.FC = () => {
                     <Divider color="amber" />
 
                     {/* ─── PILLAR II ────────────────────────────────────── */}
-                    <SectionBadge num="II" subLabel="Pilier Opérationnel" label="Suivi à Chaud — Connecter le Plan à la Réalité" color="#f59e0b" />
+                    <SectionBadge num="II" subLabel="Operational Pillar" label="Hot Tracking — Connecting the Plan to Reality" color="#f59e0b" />
                     <div className="grid md:grid-cols-2 gap-6 mb-6">
                         <HCard>
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                                <span className="text-red-400 font-black text-xs uppercase tracking-widest">Interdit chez PlanneX</span>
+                                <span className="text-red-400 font-black text-xs uppercase tracking-widest">Banned in PlanneX</span>
                             </div>
                             <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 mb-3">
                                 <p className="text-red-400 text-3xl font-black font-mono text-center mb-1">80%</p>
-                                <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest text-center">Pourcentage "terminé"</p>
+                                <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest text-center">"Complete" Percentage</p>
                             </div>
-                            <p className="text-slate-500 text-xs leading-relaxed">Estimation subjective humaine. Brise la logique du planning. Aucune base mathématique fiable pour les prévisions. <strong className="text-red-400">Supprimé définitivement.</strong></p>
+                            <p className="text-slate-500 text-xs leading-relaxed">Subjective human estimation. Breaks scheduling logic. No reliable mathematical basis for forecasting. <strong className="text-red-400">Permanently removed.</strong></p>
                         </HCard>
                         <HCard className="border-emerald-500/20 bg-emerald-500/3">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.8)]"></div>
-                                <span className="text-emerald-400 font-black text-xs uppercase tracking-widest">La Métrique de Vérité</span>
+                                <span className="text-emerald-400 font-black text-xs uppercase tracking-widest">The Truth Metric</span>
                             </div>
                             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-3">
-                                <p className="text-emerald-400 font-black font-mono text-center mb-1 text-sm">Heures Restantes</p>
-                                <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest text-center">Durée Restante (Hours)</p>
+                                <p className="text-emerald-400 font-black font-mono text-center mb-1 text-sm">Remaining Hours</p>
+                                <p className="text-slate-500 text-[10px] font-mono uppercase tracking-widest text-center">Remaining Duration (Hours)</p>
                             </div>
-                            <p className="text-slate-400 text-xs leading-relaxed">Nombre <strong className="text-white">mathématiquement pur</strong>. Identifie exactement les heures de travail restantes. Élimine toute ambiguïté. Fondation fiable pour chaque calcul de planning.</p>
+                            <p className="text-slate-400 text-xs leading-relaxed">A <strong className="text-white">mathematically pure</strong> number. Identifies exactly the remaining work hours. Eliminates all ambiguity. Reliable foundation for every scheduling calculation.</p>
                         </HCard>
                     </div>
-                    <HCard title="Calcul du Glissement en Direct — La Télémétrie du Terrain" titleColor="amber">
-                        <p className="text-slate-400 text-sm mb-5 leading-relaxed">Lorsque la réalité dévie du plan, le système emploie un processus de télémétrie rigoureux :</p>
+                    <HCard title="Live Slippage Calculation — Field Telemetry" titleColor="amber">
+                        <p className="text-slate-400 text-sm mb-5 leading-relaxed">When reality deviates from the plan, the system employs a rigorous telemetry process:</p>
                         <div className="space-y-3">
                             {[
-                                { n: "01", c: "amber", label: "Rapport Terrain (Check-In/Check-Out)", desc: "Un chef d'équipe signale un retard via le système — données objectives, pas d'interprétation." },
-                                { n: "02", c: "orange", label: "Calcul du Glissement en Direct", desc: "Le système mesure instantanément l'effet d'entraînement de ce retard spécifique sur toutes les tâches dépendantes." },
-                                { n: "03", c: "emerald", label: "Impact sur la Date Finale & Chemin Critique", desc: "Recalcul immédiat de la date limite finale et du chemin critique — données terrain vers mission control." }
+                                { n: "01", c: "amber", label: "Field Report (Check-In/Check-Out)", desc: "A team leader reports a delay through the system — objective data, no interpretation." },
+                                { n: "02", c: "orange", label: "Live Slippage Calculation", desc: "The system instantly measures the ripple effect of this specific delay on all dependent tasks." },
+                                { n: "03", c: "emerald", label: "Final Date & Critical Path Impact", desc: "Immediate recalculation of the final deadline and critical path — field data to mission control." }
                             ].map(item => (
                                 <div key={item.n} className="flex items-start gap-4 p-4 bg-black/30 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                     <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
@@ -303,21 +303,21 @@ export const WhatIsPlanexPage: React.FC = () => {
                     <Divider color="purple" />
 
                     {/* ─── PILLAR III ───────────────────────────────────── */}
-                    <SectionBadge num="III" subLabel="Pilier Décisionnel" label="Pilotage Stratégique — Mission Control" color="#a855f7" />
+                    <SectionBadge num="III" subLabel="Decision Pillar" label="Strategic Command — Mission Control" color="#a855f7" />
                     <div className="grid lg:grid-cols-2 gap-7 mb-6">
-                        <HCard title="Focus Absolu sur le Chemin Critique" titleColor="purple">
-                            <p className="text-slate-400 text-sm leading-relaxed mb-4">La colonne vertébrale du projet est le <span className="text-white font-semibold">Chemin Critique</span> — la chaîne la plus longue de tâches dépendantes avec <strong className="text-red-400">zéro slack</strong>. La mathématique est absolue :</p>
+                        <HCard title="Absolute Focus on the Critical Path" titleColor="purple">
+                            <p className="text-slate-400 text-sm leading-relaxed mb-4">The project's backbone is the <span className="text-white font-semibold">Critical Path</span> — the longest chain of dependent tasks with <strong className="text-red-400">zero slack</strong>. The mathematics are absolute:</p>
                             <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 text-center mb-4">
-                                <p className="text-red-400 font-black font-mono text-sm">1h de retard = 1h de glissement final</p>
+                                <p className="text-red-400 font-black font-mono text-sm">1h delay = 1h of final slippage</p>
                             </div>
-                            <p className="text-slate-400 text-xs leading-relaxed">PlanneX maintient un <strong className="text-white">highlight visuel permanent</strong> sur ce chemin. Les alertes instantanées notifient les managers <em>à la microseconde</em> où une tâche critique dévie — maximisant la fenêtre de réaction pour réallouer les ressources.</p>
+                            <p className="text-slate-400 text-xs leading-relaxed">PlanneX maintains a <strong className="text-white">permanent visual highlight</strong> on this path. Instant alerts notify managers <em>the microsecond</em> a critical task deviates — maximizing the reaction window to reallocate resources.</p>
                         </HCard>
-                        <HCard title="Les 3 KPIs Prédictifs du Dashboard Exécutif" titleColor="purple">
+                        <HCard title="The 3 Predictive KPIs of the Executive Dashboard" titleColor="purple">
                             <div className="space-y-4">
                                 {[
-                                    { n: "1", c: "emerald", label: "Taux d'Avancement", desc: "Vue d'ensemble de l'état global d'achèvement du projet. Bilan de santé de haut niveau." },
-                                    { n: "2", c: "blue", label: "Total Homme-Heures (HH)", desc: "Suivi granulaire de la consommation de ressources vs budget — par discipline (mécanique, électrique, etc.)." },
-                                    { n: "3", c: "amber", label: "Potentiel Glissement ★", desc: "Le \"Game Changer\". Métrique prédictive (ex: \"+32h\") basée sur les tendances actuelles — permet l'intervention AVANT l'échec.", highlight: true }
+                                    { n: "1", c: "emerald", label: "Progress Rate", desc: "Overview of the project's overall completion status. High-level health check." },
+                                    { n: "2", c: "blue", label: "Total Man-Hours (HH)", desc: "Granular tracking of resource consumption vs budget — by discipline (mechanical, electrical, etc.)." },
+                                    { n: "3", c: "amber", label: "Slippage Potential ★", desc: "The \"Game Changer\". Predictive metric (e.g., \"+32h\") based on current trends — enables intervention BEFORE failure.", highlight: true }
                                 ].map(kpi => (
                                     <div key={kpi.n} className={`flex gap-4 p-3.5 rounded-xl ${(kpi as any).highlight ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-white/3 border border-white/5'}`}>
                                         <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-${kpi.c}-500/20 border border-${kpi.c}-500/30 flex items-center justify-center text-${kpi.c}-400 font-black text-sm font-mono`}>{kpi.n}</div>
@@ -334,14 +334,14 @@ export const WhatIsPlanexPage: React.FC = () => {
                         <table className="w-full text-xs">
                             <thead><tr className="bg-white/4 border-b border-white/8">
                                 <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">KPI</th>
-                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Définition Stratégique</th>
-                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Valeur Opérationnelle</th>
+                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Strategic Definition</th>
+                                <th className="text-left p-4 text-slate-500 font-mono uppercase tracking-widest">Operational Value</th>
                             </tr></thead>
                             <tbody>
                                 {[
-                                    ["Taux d'Avancement", "État d'achèvement de l'architecture complète du projet.", "Bilan de santé de la vélocité projet."],
-                                    ["Total HH", "Consommation de ressources vs budget financier.", "Responsabilité financière et ressources."],
-                                    ["Potentiel Glissement", "Métrique prédictive basée sur les performances actuelles.", "Intervention proactive avant que les déviations deviennent des échecs critiques."],
+                                    ["Progress Rate", "Completion status of the project's complete architecture.", "Project velocity health check."],
+                                    ["Total HH", "Resource consumption vs financial budget.", "Financial accountability and resources."],
+                                    ["Slippage Potential", "Predictive metric based on current performance.", "Proactive intervention before deviations become critical failures."],
                                 ].map(([a, b, c], i) => (
                                     <tr key={i} className="border-b border-white/5 hover:bg-white/2 transition-colors">
                                         <td className="p-4 text-purple-400 font-semibold">{a}</td>
@@ -365,28 +365,28 @@ export const WhatIsPlanexPage: React.FC = () => {
                         <div className="absolute top-4 right-4 w-5 h-5 border-t-2 border-r-2 border-emerald-500/40 rounded-tr-xl pointer-events-none"></div>
                         <div className="relative z-10">
                             <div className="text-center mb-10">
-                                <p className="text-[10px] font-mono text-emerald-500 uppercase tracking-[0.3em] font-bold mb-2">Synthèse Finale</p>
-                                <h3 className="text-3xl font-black text-white tracking-tight mb-3">Le Cycle Vertueux de la Commande Totale</h3>
-                                <p className="text-slate-400 text-sm leading-relaxed max-w-2xl mx-auto">Les données terrain en temps réel informent le Mission Control, qui affine en permanence le plan maître — un système auto-correcteur en boucle fermée de l'excellence opérationnelle.</p>
+                                <p className="text-[10px] font-mono text-emerald-500 uppercase tracking-[0.3em] font-bold mb-2">Final Synthesis</p>
+                                <h3 className="text-3xl font-black text-white tracking-tight mb-3">The Virtuous Cycle of Total Command</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed max-w-2xl mx-auto">Real-time field data informs Mission Control, which continuously refines the master plan — a self-correcting closed-loop system of operational excellence.</p>
                             </div>
 
                             {/* Cycle arrows visual */}
                             <div className="flex items-center justify-center gap-2 mb-10 flex-wrap">
-                                {["PLANIFIER", "→", "SUIVRE", "→", "PILOTER", "→", "OPTIMISER"].map((item, i) => (
+                                {["PLAN", "→", "TRACK", "→", "COMMAND", "→", "OPTIMIZE"].map((item, i) => (
                                     <span key={i} className={item === "→" ? "text-slate-600 font-mono text-lg" : "text-[10px] font-black font-mono px-4 py-2 rounded-xl uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"}>{item}</span>
                                 ))}
                             </div>
 
                             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                                 {[
-                                    { n: "01", v: "PLANIFIER", e: "📡", desc: "Construire le Jumeau Numérique en ingérant tâches, ressources et calendriers de quarts réels." },
-                                    { n: "02", v: "OPTIMISER", e: "⚡", desc: "L'IA scanne des milliers de possibilités pour identifier la séquence d'achèvement la plus rapide." },
-                                    { n: "03", v: "SUIVRE", e: "🔍", desc: "Suivi à Chaud avec les Heures Restantes — données mathématiquement pures du terrain." },
-                                    { n: "04", v: "PILOTER", e: "🎯", desc: "Œil infaillible sur le Chemin Critique via le Dashboard Exécutif prédictif et les alertes instantanées." }
+                                    { n: "01", v: "PLAN", e: "📡", desc: "Build the Digital Twin by ingesting tasks, resources, and real shift calendars." },
+                                    { n: "02", v: "OPTIMIZE", e: "⚡", desc: "AI scans thousands of possibilities to identify the fastest completion sequence." },
+                                    { n: "03", v: "TRACK", e: "🔍", desc: "Hot Tracking with Remaining Hours — mathematically pure field data." },
+                                    { n: "04", v: "COMMAND", e: "🎯", desc: "Unfailing focus on the Critical Path via the predictive Executive Dashboard and instant alerts." }
                                 ].map(item => (
                                     <div key={item.n} className="bg-black/40 border border-white/8 rounded-2xl p-5 hover:border-emerald-500/30 transition-all duration-300 hover:-translate-y-1 group cursor-default">
                                         <div className="text-2xl mb-2">{item.e}</div>
-                                        <p className="text-[9px] font-mono text-slate-700 tracking-widest mb-1">ÉTAPE {item.n}</p>
+                                        <p className="text-[9px] font-mono text-slate-700 tracking-widest mb-1">STEP {item.n}</p>
                                         <p className="text-emerald-400 font-black text-xs uppercase tracking-wider mb-2 group-hover:text-emerald-300 transition-colors">{item.v}</p>
                                         <p className="text-slate-500 text-[11px] leading-relaxed group-hover:text-slate-400 transition-colors">{item.desc}</p>
                                     </div>
@@ -395,9 +395,9 @@ export const WhatIsPlanexPage: React.FC = () => {
 
                             <div className="grid md:grid-cols-3 gap-4 mb-10">
                                 {[
-                                    { from: "Intuition", to: "Décisions basées sur les données", icon: "🧠" },
-                                    { from: "Réactif (Firefighting)", to: "Proactif (Glissement Prédictif)", icon: "🔮" },
-                                    { from: "Commis de saisie", to: "Architecte stratégique", icon: "👤" }
+                                    { from: "Intuition", to: "Data-driven decisions", icon: "🧠" },
+                                    { from: "Reactive (Firefighting)", to: "Proactive (Predictive Slippage)", icon: "🔮" },
+                                    { from: "Data entry clerk", to: "Strategic architect", icon: "👤" }
                                 ].map((item, i) => (
                                     <div key={i} className="p-4 rounded-xl bg-white/3 border border-white/5 text-center">
                                         <div className="text-2xl mb-2">{item.icon}</div>
@@ -409,7 +409,7 @@ export const WhatIsPlanexPage: React.FC = () => {
 
                             <div className="pt-8 border-t border-white/5 text-center">
                                 <p className="text-slate-500 text-sm italic leading-relaxed max-w-3xl mx-auto">
-                                    "La transition du suivi manuel de la complexité physique à l'utilisation de l'IA pour un contrôle intégré total représente un <strong className="text-slate-300">changement de paradigme dans les opérations industrielles</strong> — nous sommes passés d'enregistrer l'histoire à <em>prédire et façonner activement</em> les résultats de nos projets les plus complexes."
+                                    "The transition from manually tracking physical complexity to using AI for total integrated control represents a <strong className="text-slate-300">paradigm shift in industrial operations</strong> — we've moved from recording history to <em>actively predicting and shaping</em> the outcomes of our most complex projects."
                                 </p>
                             </div>
                         </div>

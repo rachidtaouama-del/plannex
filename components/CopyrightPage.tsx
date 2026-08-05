@@ -33,40 +33,32 @@ export const CopyrightPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#020202] relative overflow-hidden font-sans selection:bg-emerald-500/30 pb-32">
             <GridBg />
-
-            {/* Ambient Background Glows */}
             <div className="absolute top-[-5%] left-[-20%] w-[60%] h-[60%] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
             <div className="absolute bottom-[-5%] right-[-20%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <main className="relative z-10 pt-32 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto">
-
-                    {/* ═══ HERO SECTION ═══════════════════════════════════ */}
                     <div className="text-center mb-24">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono tracking-[0.3em] uppercase mb-8">
                             <Copyright className="w-3 h-3" />
                             Intellectual Property Rights
                         </div>
                         <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-6 uppercase leading-none">
-                            AVIS DE <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400 leading-tight">COPYRIGHT</span>
+                            COPYRIGHT <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400 leading-tight">NOTICE</span>
                         </h1>
-
-
                     </div>
 
                     <div className="space-y-12">
-
-                        {/* 1. SCOPE OF PROTECTION */}
-                        <CopyrightSection title="1. Champ de Protection" icon={ShieldCheck}>
+                        <CopyrightSection title="1. Scope of Protection" icon={ShieldCheck}>
                             <p>
-                                L'ensemble du contenu et des matériaux disponibles sur ce site web et au sein de l'application **PlanneX**, incluant sans limitation :
+                                All content and materials available on this website and within the **PlanneX** application, including without limitation:
                             </p>
                             <div className="grid grid-cols-2 gap-4 mt-6">
                                 {[
-                                    { i: Code, t: "Code Source", d: "Architecture logicielle et backend." },
-                                    { i: PenTool, t: "UI & UX Design", d: "Concept 'Mission Control' et graphismes." },
-                                    { i: Globe, t: "Contenu Web", d: "Textes, articles et documentation." },
-                                    { i: Hash, t: "Algorithmes", d: "Moteur de planification IA unique." }
+                                    { i: Code, t: "Source Code", d: "Software architecture and backend." },
+                                    { i: PenTool, t: "UI & UX Design", d: "'Mission Control' concept and graphics." },
+                                    { i: Globe, t: "Web Content", d: "Texts, articles, and documentation." },
+                                    { i: Hash, t: "Algorithms", d: "Unique AI planning engine." }
                                 ].map((item, i) => (
                                     <div key={i} className="p-4 rounded-xl bg-slate-800/40 border border-white/5 flex gap-4">
                                         <item.i className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
@@ -78,24 +70,23 @@ export const CopyrightPage: React.FC = () => {
                                 ))}
                             </div>
                             <p className="mt-6">
-                                est la propriété exclusive de **Rachid Taouama** et est protégé par les lois internationales sur le droit d'auteur, les marques et la propriété intellectuelle.
+                                is the exclusive property of **Rachid Taouama** and is protected by international copyright, trademark, and intellectual property laws.
                             </p>
                         </CopyrightSection>
 
-                        {/* 2. PROHIBITED ACTS */}
-                        <CopyrightSection title="2. Actes Strictement Interdits" icon={Info}>
+                        <CopyrightSection title="2. Strictly Prohibited Acts" icon={Info}>
                             <div className="bg-red-500/5 border-l-4 border-red-500 p-6 mb-8 rounded-r-2xl">
-                                <p className="text-red-400 text-sm font-black uppercase tracking-widest mb-4">Avis de Restriction Légale</p>
+                                <p className="text-red-400 text-sm font-black uppercase tracking-widest mb-4">Legal Restriction Notice</p>
                                 <p className="text-slate-300 text-sm leading-relaxed m-0">
-                                    Toute reproduction, distribution, modification, retransmission, "mirroring", ou publication de tout élément protégé par le droit d'auteur est **strictement interdite** sans le consentement écrit exprès de Rachid Taouama.
+                                    Any reproduction, distribution, modification, retransmission, mirroring, or publication of any copyrighted element is **strictly prohibited** without the express written consent of Rachid Taouama.
                                 </p>
                             </div>
                             <ul className="space-y-4">
                                 {[
-                                    "Extraction non autorisée de données (Scraping).",
-                                    "Décompilation ou ingénierie inverse (Reverse Engineering).",
-                                    "Utilisation des logos 'PlanneX' à des fins commerciales sans licence.",
-                                    "Distribution de rapports modifiés omettant les crédits PlanneX."
+                                    "Unauthorized data extraction (Scraping).",
+                                    "Decompilation or reverse engineering.",
+                                    "Use of 'PlanneX' logos for commercial purposes without license.",
+                                    "Distribution of modified reports omitting PlanneX credits."
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-center gap-4 text-slate-400 font-medium">
                                         <ChevronRight className="w-4 h-4 text-emerald-500" />
@@ -105,20 +96,17 @@ export const CopyrightPage: React.FC = () => {
                             </ul>
                         </CopyrightSection>
 
-                        {/* 3. LICENSING */}
-                        <CopyrightSection title="3. Licences et Utilisation" icon={FileText}>
+                        <CopyrightSection title="3. Licensing and Usage" icon={FileText}>
                             <p>
-                                L'utilisation de l'Outil **PlanneX** est régie par les Conditions Générales de Vente ou les accords de licence spécifiques signés entre les parties. L'accès à l'application ne confère aucun droit de propriété intellectuelle sur les outils et technologies sous-jacents.
+                                Use of the **PlanneX** Tool is governed by the General Terms of Sale or specific license agreements signed between the parties. Access to the application does not confer any intellectual property rights over the underlying tools and technologies.
                             </p>
                         </CopyrightSection>
 
-                        {/* Final Note */}
                         <div className="p-12 rounded-[3.5rem] bg-emerald-500/5 border border-emerald-500/10 text-center">
-                            <h4 className="text-white font-black uppercase tracking-[0.3em] text-[10px] mb-6">Contact Propriété Intellectuelle</h4>
+                            <h4 className="text-white font-black uppercase tracking-[0.3em] text-[10px] mb-6">Intellectual Property Contact</h4>
                             <p className="text-emerald-400 font-mono text-xs mb-2">legal@plannex.ai</p>
-                            <p className="text-slate-500 text-[10px] uppercase tracking-widest">Enquête & Contentieux IP</p>
+                            <p className="text-slate-500 text-[10px] uppercase tracking-widest">IP Inquiry & Litigation</p>
                         </div>
-
                     </div>
                 </div>
             </main>

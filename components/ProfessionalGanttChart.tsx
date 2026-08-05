@@ -427,7 +427,8 @@ export const ProfessionalGanttChart = forwardRef<GanttHandle, ProfessionalGanttC
     const { visibleRows, offsetY } = useMemo(() => {
         // Timeline header + chart body: scrollTop is within the scrollable chart body
         const viewStart = scrollTop;
-        const viewEnd = scrollTop + containerHeight;
+        const currentContainerHeight = scrollContainerRef.current?.clientHeight || containerHeight;
+        const viewEnd = scrollTop + currentContainerHeight;
 
         let firstVisible = 0;
         let lastVisible = virtualRows.length - 1;
@@ -647,8 +648,11 @@ export const ProfessionalGanttChart = forwardRef<GanttHandle, ProfessionalGanttC
             {hoveredTask && isHoverDetailsEnabled && (
                 <div
                     ref={tooltipRef}
-                    className="fixed z-[200] bg-slate-900/98 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-2xl p-4 text-xs pointer-events-none w-72 text-slate-200 ring-1 ring-white/10"
-                    style={{ left: tooltipPos.x, top: tooltipPos.y }}
+                    style={{ 
+                        left: tooltipPos.x + 288 > (typeof window !== 'undefined' ? window.innerWidth : 1920) ? tooltipPos.x - 310 : tooltipPos.x, 
+                        top: tooltipPos.y + 200 > (typeof window !== 'undefined' ? window.innerHeight : 1080) ? tooltipPos.y - 210 : tooltipPos.y 
+                    }}
+                    className="fixed z-[200] bg-slate-900/98 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-2xl p-4 text-xs pointer-events-none w-72 text-slate-200 ring-1 ring-white/10 transition-all duration-75"
                 >
                     <div className="font-black text-white text-[13px] mb-3 tracking-tight flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: hoveredTask.color }}></div>
@@ -703,8 +707,8 @@ export const ProfessionalGanttChart = forwardRef<GanttHandle, ProfessionalGanttC
             {/* Scrollable Chart Body — virtual scroll container */}
             <div
                 ref={scrollContainerRef}
-                className="overflow-y-auto overflow-x-hidden relative"
-                style={{ height: containerHeight }}
+                className="overflow-y-auto overflow-x-hidden relative h-full flex-1"
+                style={{ height: '100%' }}
             >
                 {/* Background grid */}
                 <div className="absolute top-0 bottom-0 right-0 z-0 pointer-events-none" style={{ left: LEFT_COL }}>
