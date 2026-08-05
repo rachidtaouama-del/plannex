@@ -48,11 +48,24 @@ const saveTasksData = (projectId: string, tasks: any[]): boolean => {
   }
 };
 
-/** Save lightweight metadata (params + schedulingState). No tasks, no evalData. Returns false if failed. */
+/** Save lightweight metadata (params + schedulingState including ALL tasks). Returns false if failed. */
 const saveProjectSession = (projectId: string, results: any, params: any, schedulingState?: any): boolean => {
   try {
     // Destructure to exclude scheduledTasks (they live in planex_tasks_)
     const { scheduledTasks: _omit, ...resultsWithoutTasks } = results || {};
+
+    // Serialize ALL tasks (scheduled + unscheduled) from schedulingState so they
+    // survive app restarts. Without this, only scheduledTasks (from planex_tasks_)
+    // would be restored, losing every unscheduled task permanently.
+    let serializedTasks: any[] | undefined;
+    if (schedulingState?.tasks?.length) {
+      serializedTasks = schedulingState.tasks.map((t: any) => ({
+        ...t,
+        'START DATE': t['START DATE'] instanceof Date ? t['START DATE'].toISOString() : t['START DATE'],
+        'END DATE': t['END DATE'] instanceof Date ? t['END DATE'].toISOString() : t['END DATE'],
+      }));
+    }
+
     const payload = {
       params,
       results: {
@@ -70,6 +83,7 @@ const saveProjectSession = (projectId: string, results: any, params: any, schedu
         permitRecords: schedulingState.permitRecords || [],
         mapTasks: schedulingState.mapTasks || [],
         pdrItems: schedulingState.pdrItems || [],
+        tasks: serializedTasks || [],
       } : undefined,
       savedAt: new Date().toISOString(),
       v: 2, // version marker — split format
@@ -77,8 +91,38 @@ const saveProjectSession = (projectId: string, results: any, params: any, schedu
     localStorage.setItem(`planex_session_${projectId}`, JSON.stringify(payload));
     return true;
   } catch (e) {
-    console.error('[PlanneX] SAVE FAILED (session meta):', e);
-    return false;
+    // If quota exceeded, retry WITHOUT tasks (they're still in planex_tasks_)
+    // This graceful fallback keeps at least the scheduled tasks safe.
+    console.warn('[PlanneX] Session save too large, retrying without full tasks array:', e);
+    try {
+      const { scheduledTasks: _omit2, ...resultsWithoutTasks2 } = results || {};
+      const fallbackPayload = {
+        params,
+        results: {
+          ...resultsWithoutTasks2,
+          scheduleEndDate: results.scheduleEndDate instanceof Date ? results.scheduleEndDate.toISOString() : results.scheduleEndDate,
+          maxWorkDate: results.maxWorkDate instanceof Date ? results.maxWorkDate.toISOString() : results.maxWorkDate,
+        },
+        schedulingState: schedulingState ? {
+          shutdownParams: schedulingState.shutdownParams,
+          dailyDurationLimit: schedulingState.dailyDurationLimit,
+          simopsRecords: schedulingState.simopsRecords || [],
+          costHubEntries: schedulingState.costHubEntries || [],
+          scaffoldingRecords: schedulingState.scaffoldingRecords || [],
+          handlingRecords: schedulingState.handlingRecords || [],
+          permitRecords: schedulingState.permitRecords || [],
+          mapTasks: schedulingState.mapTasks || [],
+          pdrItems: schedulingState.pdrItems || [],
+        } : undefined,
+        savedAt: new Date().toISOString(),
+        v: 2,
+      };
+      localStorage.setItem(`planex_session_${projectId}`, JSON.stringify(fallbackPayload));
+      return true;
+    } catch (e2) {
+      console.error('[PlanneX] SAVE FAILED (session meta):', e2);
+      return false;
+    }
   }
 };
 
