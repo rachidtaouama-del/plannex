@@ -28,7 +28,7 @@ out/
 *.sln
 *.sw?
 
-# Environment files (keys are in electron/config.js for the private repo)
-# .env files kept out of git as best practice
-# .env
-# .env.local
+# Environment files (secrets are in GitHub Secrets for CI/CD builds)
+.env
+.env.local
+.env.*

@@ -13,5 +13,5 @@ module.exports = {
   APP_AUTHOR: 'Rachid Taouama',
 
   // ── AI API Keys ───────────────────────────────────────────────────────────
-  VITE_OPENROUTER_API_KEY: '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',
+  VITE_OPENROUTER_API_KEY: process.env.VITE_OPENROUTER_API_KEY || '',
 };
