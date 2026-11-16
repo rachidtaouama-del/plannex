@@ -12,10 +12,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
     plugins: [react()],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
-    },
+    define: {},
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -36,9 +33,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('xlsx') || id.includes('exceljs')) {
               return 'vendor-xlsx';
-            }
-            if (id.includes('@google/genai')) {
-              return 'vendor-ai';
             }
             if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
               return 'vendor-react';

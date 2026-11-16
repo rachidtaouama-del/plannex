@@ -56,10 +56,6 @@ jobs:
         run: npm run build
         env:
           # Make API keys available to Vite at build time
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-          VITE_COHERE_API_KEY: ${{ secrets.VITE_COHERE_API_KEY }}
-          VITE_HF_API_KEY: ${{ secrets.VITE_HF_API_KEY }}
-          VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
           VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
 
       # ── Step 5: Build & publish the Electron .exe to GitHub Releases ─────────

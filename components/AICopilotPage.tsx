@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { CalculationResults, AppParameters, EvaluationData, SchedulingPageState } from '../types';
-import { GoogleGenAI } from '@google/genai';
 
 // --- TYPES ---
 interface ChatMessage {
@@ -18,208 +17,57 @@ interface AICopilotPageProps {
     onBack: () => void;
 }
 
-type AIProvider = 'gemini' | 'cohere' | 'huggingface' | 'groq' | 'openrouter';
-
-// --- API KEYS ---
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const COHERE_API_KEY = import.meta.env.VITE_COHERE_API_KEY || '';
-const HF_API_KEY = import.meta.env.VITE_HF_API_KEY || '';
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+// --- API KEY ---
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 
 const OPENROUTER_MODELS = [
-    { id: 'google/gemma-3-4b-it:free', label: 'Gemma 3 4B', badge: 'Google' },
-    { id: 'google/gemma-3n-e2b-it:free', label: 'Gemma 3n E2B', badge: 'Google' },
-    { id: 'google/gemma-3n-e4b-it:free', label: 'Gemma 3n E4B', badge: 'Google' },
-    { id: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'Nemotron 3 Super 120B', badge: 'NVIDIA' },
-    { id: 'nvidia/nemotron-3-nano-30b-a3b:free', label: 'Nemotron 3 Nano 30B', badge: 'NVIDIA' },
-    { id: 'nvidia/nemotron-nano-12b-v2-vl:free', label: 'Nemotron Nano 12B VL', badge: 'NVIDIA' },
-    { id: 'nvidia/nemotron-nano-9b-v2:free', label: 'Nemotron Nano 9B', badge: 'NVIDIA' },
-    { id: 'nvidia/llama-nemotron-embed-vl-1b-v2:free', label: 'Nemotron Embed 1B VL', badge: 'NVIDIA' },
-    { id: 'openai/gpt-oss-120b:free', label: 'GPT OSS 120B', badge: 'OpenAI' },
-    { id: 'openai/gpt-oss-20b:free', label: 'GPT OSS 20B', badge: 'OpenAI' },
-    { id: 'arcee-ai/trinity-large-preview:free', label: 'Trinity Large', badge: 'Arcee' },
-    { id: 'stepfun/step-3.5-flash:free', label: 'Step 3.5 Flash', badge: 'Stepfun' },
-    { id: 'z-ai/glm-4.5-air:free', label: 'GLM 4.5 Air', badge: 'Z-AI' },
-    { id: 'liquid/lfm-2.5-1.2b-thinking:free', label: 'LFM 2.5 Thinking', badge: 'Liquid' },
-    { id: 'liquid/lfm-2.5-1.2b-instruct:free', label: 'LFM 2.5 Instruct', badge: 'Liquid' },
+    { id: 'amazon/nova-micro-v1', label: 'Nova Micro', badge: 'Amazon', price: '$0.035/M input' },
+    { id: 'amazon/nova-lite-v1', label: 'Nova Lite', badge: 'Amazon', price: '$0.30/M input' },
+    { id: 'amazon/nova-pro-v1', label: 'Nova Pro', badge: 'Amazon', price: '$0.80/M input' },
+    { id: 'amazon/nova-premier-v1', label: 'Nova Premier', badge: 'Amazon', price: '$2.50/M input' },
+    { id: 'deepseek/deepseek-v4-flash', label: 'DeepSeek V4 Flash', badge: 'DeepSeek', price: '$0.045/M input' },
+    { id: 'deepseek/deepseek-v4-flash-0731:batch', label: 'DeepSeek V4 Flash Batch', badge: 'DeepSeek', price: '$0.048/M input' },
+    { id: 'deepseek/deepseek-v4.1-flash', label: 'DeepSeek V4.1 Flash', badge: 'DeepSeek', price: '$0.051/M input' },
+    { id: 'openai/gpt-oss-20b', label: 'GPT OSS 20B', badge: 'OpenAI', price: '$0.018/M input' },
+    { id: 'openai/gpt-oss-20b:batch', label: 'GPT OSS 20B Batch', badge: 'OpenAI', price: '$0.024/M input' },
+    { id: 'openai/gpt-6-astra', label: 'GPT-6 Astra', badge: 'OpenAI', price: '$10/M input' },
+    { id: 'anthropic/claude-opus-5', label: 'Claude Opus 5', badge: 'Anthropic', price: '$5/M input' },
+    { id: 'anthropic/claude-opus-4.8', label: 'Claude Opus 4.8', badge: 'Anthropic', price: '$5/M input' },
+    { id: 'anthropic/claude-sonnet-5.5:batch', label: 'Claude Sonnet 5.5 Batch', badge: 'Anthropic', price: '$1/M input' },
+    { id: 'anthropic/claude-sonnet-4.6:batch', label: 'Claude Sonnet 4.6 Batch', badge: 'Anthropic', price: '$1.50/M input' },
 ];
-
-// --- COHERE REST API HELPER ---
-const callCohereChat = async (message: string, systemPrompt: string, context: string, history: { role: string; content: string }[]): Promise<string> => {
-    const chatHistory = history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content,
-    }));
-
-    const response = await fetch('https://api.cohere.com/v2/chat', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${COHERE_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'command-a-03-2025',
-            messages: [
-                { role: 'system', content: systemPrompt + '\n\nCONTEXTE DU PROJET:\n' + context },
-                ...chatHistory,
-                { role: 'user', content: message },
-            ],
-        }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.message || `Cohere API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    // v2 response: data.message.content is an array of content blocks
-    const contentBlocks = data?.message?.content;
-    if (Array.isArray(contentBlocks) && contentBlocks.length > 0) {
-        return contentBlocks.map((b: any) => b.text || '').join('');
-    }
-    return data?.message?.content?.[0]?.text || data?.text || "Je n'ai pas pu générer de réponse.";
-};
-
-// --- HUGGING FACE REST API HELPER ---
-const callHuggingFaceChat = async (message: string, systemPrompt: string, context: string, history: { role: string; content: string }[]): Promise<string> => {
-    const chatHistory = history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content,
-    }));
-
-    const response = await fetch('https://router.huggingface.co/novita/v3/openai/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${HF_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'deepseek/deepseek-v3-0324',
-            messages: [
-                { role: 'system', content: systemPrompt + '\n\nCONTEXTE DU PROJET:\n' + context },
-                ...chatHistory,
-                { role: 'user', content: message },
-            ],
-            max_tokens: 2048,
-        }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error?.message || errorData?.error || `HuggingFace API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data?.choices?.[0]?.message?.content || "Je n'ai pas pu générer de réponse.";
-};
-
-// --- GROQ REST API HELPER ---
-const callGroqChat = async (message: string, systemPrompt: string, context: string, history: { role: string; content: string }[]): Promise<string> => {
-    const chatHistory = history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content,
-    }));
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${GROQ_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-                { role: 'system', content: systemPrompt + '\n\nCONTEXTE DU PROJET:\n' + context },
-                ...chatHistory,
-                { role: 'user', content: message },
-            ],
-            temperature: 0.2,
-            max_tokens: 2048,
-        }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error?.message || errorData?.error || `Groq API Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data?.choices?.[0]?.message?.content || "Je n'ai pas pu générer de réponse.";
-};
 
 // --- OPENROUTER REST API HELPER ---
 const callOpenRouterChat = async (message: string, systemPrompt: string, context: string, history: { role: string; content: string }[], modelId: string): Promise<string> => {
-    // Truncate context to protect against free model context limits (≈8K chars ≈ ~2K tokens safe)
-    const MAX_CTX = 8000;
-    const safeContext = context.length > MAX_CTX ? context.slice(0, MAX_CTX) + '\n... [contexte tronqué pour limites du modèle]' : context;
-
-    // Many free models on OpenRouter reject the 'system' role → inject as a user prefix instead
-    const systemBlock = `[INSTRUCTIONS SYSTÈME]\n${systemPrompt}\n\n[CONTEXTE DU PROJET]\n${safeContext}\n[FIN DES INSTRUCTIONS]\n\nQuestion de l'utilisateur : `;
-
     const chatHistory = history.map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content,
     }));
 
-    const buildMessages = (includeSystem: boolean) => {
-        if (includeSystem) {
-            return [
-                { role: 'system', content: systemPrompt + '\n\nCONTEXTE DU PROJET:\n' + safeContext },
-                ...chatHistory,
-                { role: 'user', content: message },
-            ];
-        }
-        // Fallback: merge everything into the first user message
-        return [
-            ...chatHistory,
-            { role: 'user', content: systemBlock + message },
-        ];
-    };
+    const messages = [
+        { role: 'system', content: systemPrompt + '\n\nCONTEXTE DU PROJET:\n' + context },
+        ...chatHistory,
+        { role: 'user', content: message },
+    ];
 
-    const doFetch = async (messages: object[], maxTokens: number | null) => {
-        const body: Record<string, unknown> = { model: modelId, messages };
-        if (maxTokens) body.max_tokens = maxTokens;
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://plannex.app',
+            'X-Title': 'PlanneX Copilot IA',
+        },
+        body: JSON.stringify({ model: modelId, messages, max_tokens: 4096 }),
+    });
 
-        return fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://plannex.app',
-                'X-Title': 'PlanneX Copilot IA',
-            },
-            body: JSON.stringify(body),
-        });
-    };
-
-    const extractError = async (res: Response): Promise<string> => {
-        try {
-            const d = await res.json();
-            return d?.error?.message || d?.error?.metadata?.raw || JSON.stringify(d?.error) || `HTTP ${res.status}`;
-        } catch { return `HTTP ${res.status} ${res.statusText}`; }
-    };
-
-    // Attempt 1: with system role + max_tokens
-    let response = await doFetch(buildMessages(true), 1024);
     if (!response.ok) {
-        const err1 = await extractError(response);
-        console.warn('OpenRouter attempt 1 failed:', err1, '— retrying without system role');
-
-        // Attempt 2: without system role (user-prefix style)
-        response = await doFetch(buildMessages(false), 1024);
-        if (!response.ok) {
-            const err2 = await extractError(response);
-            console.warn('OpenRouter attempt 2 failed:', err2, '— retrying without max_tokens');
-
-            // Attempt 3: without system role AND without max_tokens constraint
-            response = await doFetch(buildMessages(false), null);
-            if (!response.ok) {
-                const err3 = await extractError(response);
-                throw new Error(`OpenRouter (${modelId}): ${err3}`);
-            }
-        }
+        let errMsg = `HTTP ${response.status}`;
+        try {
+            const d = await response.json();
+            errMsg = d?.error?.message || d?.error?.metadata?.raw || JSON.stringify(d?.error) || errMsg;
+        } catch {}
+        throw new Error(`OpenRouter (${modelId}): ${errMsg}`);
     }
 
     const data = await response.json();
@@ -447,10 +295,8 @@ const AICopilotPage: React.FC<AICopilotPageProps> = ({ results, parameters, eval
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isContextReady, setIsContextReady] = useState(false);
-    const [selectedProvider, setSelectedProvider] = useState<AIProvider>('gemini');
     const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(OPENROUTER_MODELS[0].id);
     const [orModelSearch, setOrModelSearch] = useState('');
-    const [showOrModelPicker, setShowOrModelPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -492,40 +338,6 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
         e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
     };
 
-    // --- GEMINI CALL ---
-    const callGemini = async (content: string, conversationHistory: string): Promise<string> => {
-        const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
-        const MAX_RETRIES = 2;
-        let lastError: any = null;
-
-        for (const model of MODELS) {
-            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-                try {
-                    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-                    const fullPrompt = `CONTEXTE DU PROJET:\n${projectContext}\n\nHISTORIQUE DE CONVERSATION:\n${conversationHistory}\n\nNOUVELLE QUESTION DE L'UTILISATEUR:\n${content}`;
-
-                    const response = await ai.models.generateContent({
-                        model,
-                        contents: fullPrompt,
-                        config: { systemInstruction: SYSTEM_INSTRUCTION }
-                    });
-                    return response.text || "Je n'ai pas pu générer de réponse.";
-                } catch (error: any) {
-                    lastError = error;
-                    const errorStr = error?.message || JSON.stringify(error) || '';
-                    const is429 = errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED') || errorStr.includes('quota');
-                    if (is429 && attempt < MAX_RETRIES) {
-                        await new Promise(r => setTimeout(r, (attempt + 1) * 3000));
-                        continue;
-                    }
-                    if (is429) break;
-                    break;
-                }
-            }
-        }
-        throw lastError || new Error('Gemini API failed');
-    };
-
     const sendMessage = useCallback(async (content: string) => {
         if (!content.trim() || isLoading) return;
 
@@ -542,50 +354,13 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
 
         if (inputRef.current) inputRef.current.style.height = 'auto';
 
-        const conversationHistory = messages
-            .filter(m => m.role !== 'system')
-            .slice(-10)
-            .map(m => `${m.role === 'user' ? 'UTILISATEUR' : 'ASSISTANT'}: ${m.content}`)
-            .join('\n\n');
-
         const chatHistory = messages
             .filter(m => m.role !== 'system')
             .slice(-10)
             .map(m => ({ role: m.role, content: m.content }));
 
         try {
-            let aiResponse: string;
-
-            if (selectedProvider === 'gemini') {
-                try {
-                    aiResponse = await callGemini(content.trim(), conversationHistory);
-                } catch (geminiError: any) {
-                    const errMsg = geminiError?.message || JSON.stringify(geminiError) || '';
-                    const isQuota = errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED');
-                    if (isQuota) {
-                        console.warn('Gemini quota exceeded, trying Cohere fallback...');
-                        try {
-                            aiResponse = await callCohereChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory);
-                            aiResponse = `*🔄 Basculé automatiquement sur Cohere (quota Gemini épuisé)*\n\n${aiResponse}`;
-                        } catch {
-                            console.warn('Cohere also failed, trying HuggingFace fallback...');
-                            aiResponse = await callHuggingFaceChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory);
-                            aiResponse = `*🔄 Basculé automatiquement sur HuggingFace (Gemini + Cohere indisponibles)*\n\n${aiResponse}`;
-                        }
-                    } else {
-                        throw geminiError;
-                    }
-                }
-            } else if (selectedProvider === 'cohere') {
-                aiResponse = await callCohereChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory);
-            } else if (selectedProvider === 'groq') {
-                aiResponse = await callGroqChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory);
-            } else if (selectedProvider === 'openrouter') {
-                aiResponse = await callOpenRouterChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory, selectedOpenRouterModel);
-            } else {
-                // HuggingFace selected
-                aiResponse = await callHuggingFaceChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory);
-            }
+            const aiResponse = await callOpenRouterChat(content.trim(), SYSTEM_INSTRUCTION, projectContext, chatHistory, selectedOpenRouterModel);
 
             const assistantMessage: ChatMessage = {
                 id: crypto.randomUUID(),
@@ -597,17 +372,18 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
         } catch (error: any) {
             console.error('AI Chat Error:', error);
             const errorContent = error?.message || 'Erreur inconnue';
+            const currentModelLabel = OPENROUTER_MODELS.find(m => m.id === selectedOpenRouterModel)?.label || selectedOpenRouterModel;
             const errorMessage: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                content: `⚠️ **Erreur de communication avec l'IA (${selectedProvider.toUpperCase()}).**\n\n${errorContent}\n\nEssayez de basculer vers un autre fournisseur en utilisant le sélecteur dans l'en-tête.`,
+                content: `⚠️ **Erreur de communication avec l'IA (${currentModelLabel}).**\n\n${errorContent}\n\nEssayez de sélectionner un autre modèle dans le panneau latéral.`,
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, messages, projectContext, selectedProvider, selectedOpenRouterModel]);
+    }, [isLoading, messages, projectContext, selectedOpenRouterModel]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -621,16 +397,12 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
         }
     };
 
-    // --- PROVIDER META ---
-    const providerMeta: Record<AIProvider, { label: string; model: string; icon: string; color: string; glow: string; border: string; bg: string; textColor: string; desc: string; }> = {
-        gemini: { label: 'Gemini', model: 'gemini-2.0-flash', icon: '✶', color: 'from-blue-500 to-indigo-500', glow: 'shadow-blue-500/30', border: 'border-blue-500/30', bg: 'bg-blue-500/10', textColor: 'text-blue-400', desc: 'Google DeepMind' },
-        cohere: { label: 'Cohere', model: 'command-a-03-2025', icon: '◆', color: 'from-purple-500 to-violet-500', glow: 'shadow-purple-500/30', border: 'border-purple-500/30', bg: 'bg-purple-500/10', textColor: 'text-purple-400', desc: 'Command-A Series' },
-        huggingface: { label: 'HuggingFace', model: 'deepseek-v3', icon: '🤗', color: 'from-amber-500 to-orange-500', glow: 'shadow-amber-500/30', border: 'border-amber-500/30', bg: 'bg-amber-500/10', textColor: 'text-amber-400', desc: 'DeepSeek v3 · Novita' },
-        groq: { label: 'Groq', model: 'llama-3.3-70b', icon: '⚡', color: 'from-emerald-500 to-teal-500', glow: 'shadow-emerald-500/30', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', textColor: 'text-emerald-400', desc: 'Llama 3.3 70B · Ultra Fast' },
-        openrouter: { label: 'OpenRouter', model: '26 modèles free', icon: '🌐', color: 'from-rose-500 to-orange-500', glow: 'shadow-rose-500/30', border: 'border-rose-500/30', bg: 'bg-rose-500/10', textColor: 'text-rose-400', desc: 'Multi-Model Router' },
-    };
-
-    const currentMeta = providerMeta[selectedProvider];
+    const currentModelInfo = OPENROUTER_MODELS.find(m => m.id === selectedOpenRouterModel) || OPENROUTER_MODELS[0];
+    const themeColor = 'from-cyan-500 to-blue-500';
+    const themeGlow = 'shadow-cyan-500/30';
+    const themeBorder = 'border-cyan-500/30';
+    const themeBg = 'bg-cyan-500/10';
+    const themeTextColor = 'text-cyan-400';
 
     // --- LOADING SCREEN ---
     if (!isContextReady) {
@@ -715,8 +487,8 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
 
             {/* Ambient Background Glows */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-                <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full" style={{ background: `radial-gradient(circle, ${selectedProvider === 'gemini' ? 'rgba(59,130,246,0.04)' : selectedProvider === 'cohere' ? 'rgba(168,85,247,0.04)' : selectedProvider === 'huggingface' ? 'rgba(245,158,11,0.04)' : selectedProvider === 'groq' ? 'rgba(16,185,129,0.04)' : 'rgba(244,63,94,0.04)'} 0%, transparent 70%)`, transition: 'background 0.8s ease' }} />
-                <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.03) 0%, transparent 70%)' }} />
+                <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.04) 0%, transparent 70%)' }} />
+                <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.03) 0%, transparent 70%)' }} />
             </div>
 
             {/* ===== LEFT SIDEBAR ===== */}
@@ -767,7 +539,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                 <div className="p-5 flex flex-col flex-1">
                     {/* Logo */}
                     <div className="flex items-center gap-2 mb-6">
-                        <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${currentMeta.color} flex items-center justify-center shadow-lg transition-all duration-300`}>
+                        <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${themeColor} flex items-center justify-center shadow-lg transition-all duration-300`}>
                             <svg className="w-3.5 h-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
                             </svg>
@@ -779,12 +551,12 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     </div>
 
                     {/* Session Status Card */}
-                    <div className={`mb-5 p-4 rounded-2xl border ${currentMeta.border} ${currentMeta.bg} relative overflow-hidden flex-shrink-0`}>
-                        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at top right, ${selectedProvider === 'gemini' ? 'rgba(59,130,246,0.08)' : selectedProvider === 'cohere' ? 'rgba(168,85,247,0.08)' : selectedProvider === 'huggingface' ? 'rgba(245,158,11,0.08)' : selectedProvider === 'groq' ? 'rgba(16,185,129,0.08)' : 'rgba(244,63,94,0.08)'}, transparent)` }} />
+                    <div className={`mb-5 p-4 rounded-2xl border ${themeBorder} ${themeBg} relative overflow-hidden flex-shrink-0`}>
+                        <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at top right, rgba(6,182,212,0.08), transparent)' }} />
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-3">
-                                <div className={`w-1.5 h-1.5 rounded-full ${currentMeta.textColor.replace('text-', 'bg-')} animate-pulse`} />
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${currentMeta.textColor}`}>Session Active</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${themeTextColor}`}>Session Active</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
@@ -803,84 +575,47 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                         </div>
                     </div>
 
-                    {/* Provider Selection Label */}
-                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-1">Moteur IA</div>
+                    {/* Model Selection */}
+                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-1">Modèle IA · OpenRouter</div>
 
-                    {/* Provider Cards */}
-                    <div className="space-y-2">
-                        {(Object.keys(providerMeta) as AIProvider[]).map(provider => {
-                            const meta = providerMeta[provider];
-                            const isActive = selectedProvider === provider;
-                            return (
-                                <div key={provider}>
+                    {/* Model Picker */}
+                    <div className={`rounded-2xl border ${themeBorder} ${themeBg} overflow-hidden`}>
+                        {/* Currently selected */}
+                        <div className="px-3 py-2.5 border-b border-cyan-500/10">
+                            <div className="text-[8px] text-cyan-400/60 font-black uppercase tracking-widest mb-1">Modèle actif</div>
+                            <div className="text-[11px] font-bold text-cyan-300 truncate">{currentModelInfo.label}</div>
+                            <div className="text-[8px] text-slate-600 font-mono mt-0.5">{currentModelInfo.price}</div>
+                        </div>
+                        {/* Search */}
+                        <div className="px-3 py-2 border-b border-cyan-500/10">
+                            <input
+                                type="text"
+                                value={orModelSearch}
+                                onChange={e => setOrModelSearch(e.target.value)}
+                                placeholder="Rechercher un modèle..."
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] text-white placeholder:text-slate-700 focus:outline-none focus:border-cyan-500/30 transition-colors"
+                            />
+                        </div>
+                        {/* Model list */}
+                        <div className="max-h-[320px] overflow-y-auto chat-scroll">
+                            {OPENROUTER_MODELS
+                                .filter(m => m.label.toLowerCase().includes(orModelSearch.toLowerCase()) || m.badge.toLowerCase().includes(orModelSearch.toLowerCase()))
+                                .map(model => (
                                     <button
-                                        onClick={() => { setSelectedProvider(provider); if (provider === 'openrouter') setShowOrModelPicker(true); }}
-                                        className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-300 ${isActive
-                                            ? `${meta.border} ${meta.bg} shadow-lg ${meta.glow}`
-                                            : 'border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10'
-                                            }`}
+                                        key={model.id}
+                                        onClick={() => setSelectedOpenRouterModel(model.id)}
+                                        className={`w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-white/5 transition-colors ${selectedOpenRouterModel === model.id ? 'bg-cyan-500/10' : ''}`}
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${isActive ? `bg-gradient-to-br ${meta.color}` : 'bg-white/5'
-                                                }`}>
-                                                {meta.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-0.5">
-                                                    <span className={`text-[11px] font-black ${isActive ? 'text-white' : 'text-slate-400'}`}>{meta.label}</span>
-                                                    {isActive && <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${meta.textColor.replace('text-', 'bg-')}`} />}
-                                                </div>
-                                                <div className={`text-[9px] font-bold truncate ${isActive ? meta.textColor : 'text-slate-600'}`}>{meta.desc}</div>
-                                                <div className="text-[8px] text-slate-700 font-mono truncate mt-0.5">{meta.model}</div>
-                                            </div>
+                                        <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${selectedOpenRouterModel === model.id ? 'bg-cyan-400' : 'bg-slate-700'}`} />
+                                        <div className="flex-1 min-w-0">
+                                            <div className={`text-[10px] font-bold truncate ${selectedOpenRouterModel === model.id ? 'text-cyan-300' : 'text-slate-400'}`}>{model.label}</div>
+                                            <div className="text-[8px] text-slate-600 font-mono">{model.price}</div>
                                         </div>
+                                        <span className="flex-shrink-0 text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/5 text-slate-600">{model.badge}</span>
                                     </button>
-
-                                    {/* OpenRouter Model Picker - shown when openrouter is active */}
-                                    {provider === 'openrouter' && isActive && (
-                                        <div className="mt-2 rounded-2xl border border-rose-500/20 bg-rose-500/5 overflow-hidden">
-                                            {/* Currently selected */}
-                                            <div className="px-3 py-2 border-b border-rose-500/10">
-                                                <div className="text-[8px] text-rose-400/60 font-black uppercase tracking-widest mb-1">Modèle actif</div>
-                                                <div className="text-[10px] font-bold text-rose-300 truncate">
-                                                    {OPENROUTER_MODELS.find(m => m.id === selectedOpenRouterModel)?.label || selectedOpenRouterModel}
-                                                </div>
-                                            </div>
-                                            {/* Search */}
-                                            <div className="px-3 py-2 border-b border-rose-500/10">
-                                                <input
-                                                    type="text"
-                                                    value={orModelSearch}
-                                                    onChange={e => setOrModelSearch(e.target.value)}
-                                                    placeholder="Rechercher un modèle..."
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] text-white placeholder:text-slate-700 focus:outline-none focus:border-rose-500/30 transition-colors"
-                                                />
-                                            </div>
-                                            {/* Model list */}
-                                            <div className="max-h-48 overflow-y-auto chat-scroll">
-                                                {OPENROUTER_MODELS
-                                                    .filter(m => m.label.toLowerCase().includes(orModelSearch.toLowerCase()) || m.badge.toLowerCase().includes(orModelSearch.toLowerCase()))
-                                                    .map(model => (
-                                                        <button
-                                                            key={model.id}
-                                                            onClick={() => setSelectedOpenRouterModel(model.id)}
-                                                            className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors ${selectedOpenRouterModel === model.id ? 'bg-rose-500/10' : ''
-                                                                }`}
-                                                        >
-                                                            <div className={`flex-shrink-0 w-1 h-1 rounded-full ${selectedOpenRouterModel === model.id ? 'bg-rose-400' : 'bg-slate-700'}`} />
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className={`text-[10px] font-bold truncate ${selectedOpenRouterModel === model.id ? 'text-rose-300' : 'text-slate-400'}`}>{model.label}</div>
-                                                            </div>
-                                                            <span className="flex-shrink-0 text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/5 text-slate-600">{model.badge}</span>
-                                                        </button>
-                                                    ))
-                                                }
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                ))
+                            }
+                        </div>
                     </div>
 
                     {/* Footer */}
@@ -900,8 +635,8 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     <div className="flex items-center gap-4">
                         {/* AI Avatar */}
                         <div className="relative">
-                            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${currentMeta.color} blur-md opacity-50`} />
-                            <div className={`relative w-11 h-11 rounded-2xl bg-gradient-to-br ${currentMeta.color} flex items-center justify-center shadow-lg`}>
+                            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${themeColor} blur-md opacity-50`} />
+                            <div className={`relative w-11 h-11 rounded-2xl bg-gradient-to-br ${themeColor} flex items-center justify-center shadow-lg`}>
                                 <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
                                 </svg>
@@ -910,7 +645,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-base font-black text-white tracking-tight">PlanneX Copilot IA</h1>
-                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${currentMeta.bg} ${currentMeta.textColor} ${currentMeta.border} border`}>{currentMeta.label}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${themeBg} ${themeTextColor} ${themeBorder} border`}>OpenRouter</span>
                             </div>
                             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Intelligence Artificielle · Analyse d'Arrêt Industriel</p>
                         </div>
@@ -935,7 +670,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                             {/* Avatar */}
                             <div className="flex-shrink-0 mt-1">
                                 {msg.role === 'assistant' ? (
-                                    <div className={`relative w-9 h-9 rounded-xl bg-gradient-to-br ${currentMeta.color} flex items-center justify-center shadow-lg ${currentMeta.glow}`}>
+                                    <div className={`relative w-9 h-9 rounded-xl bg-gradient-to-br ${themeColor} flex items-center justify-center shadow-lg ${themeGlow}`}>
                                         <svg className="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
                                         </svg>
@@ -956,7 +691,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                     : 'bg-[#0d1117] border border-white/[0.06] text-slate-300 rounded-tl-sm'
                                     }`}>
                                     {msg.role === 'assistant' && (
-                                        <div className={`absolute -top-px left-0 right-0 h-px rounded-t-2xl bg-gradient-to-r ${currentMeta.color} opacity-50`} />
+                                        <div className={`absolute -top-px left-0 right-0 h-px rounded-t-2xl bg-gradient-to-r ${themeColor} opacity-50`} />
                                     )}
                                     {msg.role === 'assistant' ? (
                                         <div
@@ -972,7 +707,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                         {msg.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                     {msg.role === 'assistant' && (
-                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${currentMeta.textColor} opacity-60`}>{currentMeta.label}</span>
+                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${themeTextColor} opacity-60`}>{currentModelInfo.label}</span>
                                     )}
                                 </div>
                             </div>
@@ -982,7 +717,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     {/* Typing Indicator */}
                     {isLoading && (
                         <div className="flex gap-4 message-anim">
-                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentMeta.color} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${themeColor} flex items-center justify-center flex-shrink-0 shadow-lg`}>
                                 <svg className="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
                                 </svg>
@@ -992,7 +727,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                     {[0, 1, 2].map(i => (
                                         <div
                                             key={i}
-                                            className={`w-2 h-2 rounded-full bg-gradient-to-br ${currentMeta.color} animate-bounce`}
+                                            className={`w-2 h-2 rounded-full bg-gradient-to-br ${themeColor} animate-bounce`}
                                             style={{ animationDelay: `${i * 180}ms` }}
                                         />
                                     ))}
@@ -1007,15 +742,11 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                 {/* Input Zone */}
                 <div className="flex-shrink-0 px-8 pb-6 pt-4 border-t border-white/[0.04] bg-[#040608]/80 backdrop-blur-xl">
                     <form onSubmit={handleSubmit}>
-                        <div className={`relative flex items-end gap-3 bg-[#0d1117] border rounded-2xl p-3 transition-all duration-300 focus-within:border-opacity-60 ${selectedProvider === 'gemini' ? 'border-blue-500/20 focus-within:border-blue-500/40 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.08)]' :
-                            selectedProvider === 'cohere' ? 'border-purple-500/20 focus-within:border-purple-500/40 focus-within:shadow-[0_0_30px_rgba(168,85,247,0.08)]' :
-                                selectedProvider === 'huggingface' ? 'border-amber-500/20 focus-within:border-amber-500/40 focus-within:shadow-[0_0_30px_rgba(245,158,11,0.08)]' :
-                                    'border-emerald-500/20 focus-within:border-emerald-500/40 focus-within:shadow-[0_0_30px_rgba(16,185,129,0.08)]'
-                            } shadow-xl`}>
-                            {/* Provider pill */}
-                            <div className={`flex-shrink-0 self-end mb-1 px-2.5 py-1.5 rounded-xl ${currentMeta.bg} border ${currentMeta.border} flex items-center gap-1.5`}>
-                                <span className="text-base leading-none">{currentMeta.icon}</span>
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${currentMeta.textColor}`}>{currentMeta.label}</span>
+                        <div className="relative flex items-end gap-3 bg-[#0d1117] border border-cyan-500/20 rounded-2xl p-3 transition-all duration-300 focus-within:border-cyan-500/40 focus-within:shadow-[0_0_30px_rgba(6,182,212,0.08)] shadow-xl">
+                            {/* Model pill */}
+                            <div className={`flex-shrink-0 self-end mb-1 px-2.5 py-1.5 rounded-xl ${themeBg} border ${themeBorder} flex items-center gap-1.5`}>
+                                <span className="text-base leading-none">🌐</span>
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${themeTextColor}`}>{currentModelInfo.badge}</span>
                             </div>
                             <textarea
                                 ref={inputRef}
@@ -1030,7 +761,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                             <button
                                 type="submit"
                                 disabled={!inputValue.trim() || isLoading}
-                                className={`flex-shrink-0 self-end p-3 rounded-xl bg-gradient-to-r ${currentMeta.color} text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100`}
+                                className={`flex-shrink-0 self-end p-3 rounded-xl bg-gradient-to-r ${themeColor} text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100`}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M22 2L11 13" /><path d="M22 2L15 22l-4-9-9-4 20-7z" />
@@ -1038,7 +769,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                             </button>
                         </div>
                         <p className="text-center mt-2.5 text-[8px] text-slate-800 font-medium tracking-wide">
-                            PlanneX Copilot IA · {results.kpis.totalTasks} tâches analysées · Moteur : {currentMeta.model}
+                            PlanneX Copilot IA · {results.kpis.totalTasks} tâches analysées · Modèle : {currentModelInfo.label}
                         </p>
                     </form>
                 </div>

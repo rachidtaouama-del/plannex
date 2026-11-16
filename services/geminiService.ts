@@ -1,61 +1,34 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import type { AppParameters, CalculationResults, AIAnalysisResult, ScheduledTask } from '../types';
 
-const analysisSchema = {
-  type: Type.OBJECT,
-  properties: {
-    executiveSummary: {
-      type: Type.OBJECT,
-      properties: {
-        status: {
-          type: Type.STRING,
-          description: "Overall status of the schedule. Must be one of: 'On Track', 'At Risk', 'Off Track'.",
-        },
-        summaryText: {
-          type: Type.STRING,
-          description: "A concise, 1-2 sentence executive summary of the schedule's health.",
-        },
-      },
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
+const DEFAULT_MODEL = 'amazon/nova-pro-v1';
+
+const callOpenRouter = async (messages: { role: string; content: string }[], model: string = DEFAULT_MODEL): Promise<string> => {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://plannex.app',
+      'X-Title': 'PlanneX Copilot IA',
     },
-    keyFindings: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          type: {
-            type: Type.STRING,
-            description: "The type of finding. Must be either 'positive' or 'negative'.",
-          },
-          finding: {
-            type: Type.STRING,
-            description: 'A single, specific observation about the schedule (e.g., "Resource peak for MECANIQUE is high").',
-          },
-        },
-      },
-    },
-    recommendations: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-        description: 'A single, actionable recommendation to improve the schedule (e.g., "Consider staggering tasks for MECANIQUE team to level resource load.").',
-      },
-    },
-    bottlenecks: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-        description: 'A single identified bottleneck, which could be a specific task, resource, or dependency chain (e.g., "MECANIQUE team resource availability").',
-      },
-    },
-  },
+    body: JSON.stringify({ model, messages, max_tokens: 4096 }),
+  });
+
+  if (!response.ok) {
+    let errMsg = `HTTP ${response.status}`;
+    try {
+      const d = await response.json();
+      errMsg = d?.error?.message || d?.error?.metadata?.raw || JSON.stringify(d?.error) || errMsg;
+    } catch {}
+    throw new Error(`OpenRouter API Error: ${errMsg}`);
+  }
+
+  const data = await response.json();
+  return data?.choices?.[0]?.message?.content || '';
 };
 
-
 export const analyzeScheduleWithAI = async (results: CalculationResults, parameters: AppParameters): Promise<AIAnalysisResult> => {
-  // Always use Gemini for structured analysis as it's optimized for this schema
-  // FIX: Obtained API key exclusively from environment variable process.env.API_KEY as per guidelines.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
   const { kpis, peakResources, scheduleEndDate, maxWorkDate } = results;
   const isOvertime = scheduleEndDate > maxWorkDate;
   const overrunHours = isOvertime ? (scheduleEndDate.getTime() - maxWorkDate.getTime()) / (1000 * 60 * 60) : 0;
@@ -76,42 +49,32 @@ ${Object.entries(peakResources).map(([team, count]) => `  - ${team}: ${count} pe
 
 **Analysis Instructions:**
 
-Based *only* on the data above, provide the following analysis in French:
+Based *only* on the data above, provide the following analysis in French.
+Your entire output **must** be a single, valid JSON object with this exact structure:
+{
+  "executiveSummary": { "status": "On Track|At Risk|Off Track", "summaryText": "..." },
+  "keyFindings": [{ "type": "positive|negative", "finding": "..." }],
+  "recommendations": ["..."],
+  "bottlenecks": ["..."]
+}
 
-1.  **Executive Summary:** Give a very brief, high-level status ('On Track', 'At Risk', or 'Off Track') and a one-sentence summary.
-2.  **Key Findings:** Identify 2-3 of the most critical positive or negative points.
-3.  **Recommendations:** Provide 2-3 concrete, actionable recommendations for improvement.
-4.  **Bottlenecks:** Clearly state the primary bottleneck(s) identified from the data (e.g., a specific team with high resource peak).
-
-Your entire output **must** be a single, valid JSON object that conforms to the provided schema. Do not include any text, markdown formatting, or explanations outside of the JSON object.
+Do not include any text, markdown formatting, or explanations outside of the JSON object.
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      // FIX: Updated deprecated model 'gemini-1.5-flash' to 'gemini-3-flash-preview' for basic text tasks with JSON output.
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: analysisSchema,
-      },
-    });
+    const text = await callOpenRouter([
+      { role: 'system', content: 'You are a world-class project scheduler. Always respond with valid JSON only.' },
+      { role: 'user', content: prompt },
+    ]);
 
-    // FIX: Use the .text property to get the string output directly from the response.
-    const jsonText = response.text;
-    if (!jsonText) throw new Error("Empty response from AI");
-
-    // In case the API wraps the JSON in markdown, remove it.
-    const cleanedJson = jsonText.trim().replace(/^```json\s*|```$/g, '');
+    const cleanedJson = text.trim().replace(/^```json\s*|```$/g, '');
     return JSON.parse(cleanedJson) as AIAnalysisResult;
-
   } catch (error) {
-    console.error("Error calling Gemini API:", error);
+    console.error("Error calling OpenRouter API:", error);
     let errorMessage = "Erreur inconnue lors de la communication avec l'API d'IA.";
     if (error instanceof Error) {
       errorMessage = `Erreur lors de l'analyse par l'IA : ${error.message}`;
     }
-    // Return a structured error object that matches the expected type, so the UI can handle it.
     return {
       executiveSummary: { status: 'Off Track', summaryText: 'Failed to generate analysis.' },
       keyFindings: [{ type: 'negative', finding: `API Error: ${errorMessage}` }],
@@ -124,8 +87,6 @@ Your entire output **must** be a single, valid JSON object that conforms to the 
 // --- CHAT FUNCTIONALITY ---
 
 const formatTasksForContext = (tasks: ScheduledTask[]): string => {
-  // Limit to important fields to save tokens
-  // Taking a subset if too many tasks to avoid context window limits (though Flash has large window)
   const limitedTasks = tasks.length > 500 ? tasks.slice(0, 500) : tasks;
   const taskStrings = limitedTasks.map(t =>
     `ID:${t.id} | Action:${t.action} | Eq:${t.equipment} | Team:${t.team} | Start:${t.startTime.toLocaleString()} | End:${t.endTime.toLocaleString()} | Dur:${t.duration}h`
@@ -151,31 +112,22 @@ export const getChatContextString = (results: CalculationResults, parameters: Ap
     - **Total Heures-Homme:** ${kpis.totalManHours.toFixed(2)}
     - **Heures de Travail Effectives:** ${kpis.effectiveWorkHours.toFixed(2)}
     - **Pic de Ressources:** ${JSON.stringify(peakResources)}
-    
+
     **LISTE DÉTAILLÉE DES TÂCHES:**
     ${taskContext}
     `;
 };
 
-export const sendMessageToChat = async (message: string, context: string, modelId: string = 'gemini-3-flash-preview'): Promise<string> => {
-
-  // Use Gemini
-  // FIX: Initialization using process.env.API_KEY as per guidelines.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+export const sendMessageToChat = async (message: string, context: string, modelId: string = DEFAULT_MODEL): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: `CONTEXTE DU PROJET:\n${context}\n\nQUESTION DE L'UTILISATEUR:\n${message}`,
-      config: {
-        systemInstruction: "Tu es PlanneX Copilot, un expert senior en planification de maintenance industrielle. Ton rôle est d'aider le planificateur à optimiser son arrêt. Réponds aux questions de l'utilisateur en te basant EXCLUSIVEMENT sur les données du planning fournies dans le contexte. Si tu ne trouves pas l'information dans le contexte, dis-le poliment. Sois précis, professionnel, concis et force de proposition. Tes réponses doivent être en français.",
-      }
-    });
+    const text = await callOpenRouter([
+      { role: 'system', content: "Tu es PlanneX Copilot, un expert senior en planification de maintenance industrielle. Ton rôle est d'aider le planificateur à optimiser son arrêt. Réponds aux questions de l'utilisateur en te basant EXCLUSIVEMENT sur les données du planning fournies dans le contexte. Si tu ne trouves pas l'information dans le contexte, dis-le poliment. Sois précis, professionnel, concis et force de proposition. Tes réponses doivent être en français." },
+      { role: 'user', content: `CONTEXTE DU PROJET:\n${context}\n\nQUESTION DE L'UTILISATEUR:\n${message}` },
+    ], modelId);
 
-    // FIX: Use the .text property to get the string output directly from the response.
-    return response.text || "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
+    return text || "Je n'ai pas pu générer de réponse. Veuillez réessayer.";
   } catch (error) {
-    console.error("Gemini Chat Error:", error);
-    throw new Error("Erreur de communication avec l'IA Gemini. Vérifiez votre connexion ou votre clé API.");
+    console.error("OpenRouter Chat Error:", error);
+    throw new Error("Erreur de communication avec l'IA. Vérifiez votre connexion ou votre clé API OpenRouter.");
   }
 };

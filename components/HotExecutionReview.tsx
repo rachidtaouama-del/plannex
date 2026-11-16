@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import type { CalculationResults, AppParameters, ScheduledTask, HotReviewState, SupplementaryTask, TeamDetail, SortableHotReviewKeys, EvaluationData, EvaluatedTaskData, SlippageDetails, TaskStatus, EventDetail, EvaluationKpis, OngoingProgress, SchedulingTaskData, CostHubEntry } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';

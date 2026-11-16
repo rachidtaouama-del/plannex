@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { CalculationResults, AppParameters } from '../types';
 import { getChatContextString, sendMessageToChat } from '../services/geminiService';
-import { GoogleGenAI } from '@google/genai';
 
 interface AIChatPanelProps {
     isOpen: boolean;
@@ -18,8 +17,12 @@ interface Message {
 }
 
 const AVAILABLE_MODELS = [
-    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
-    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
+    { id: 'amazon/nova-micro-v1', name: 'Nova Micro' },
+    { id: 'amazon/nova-lite-v1', name: 'Nova Lite' },
+    { id: 'amazon/nova-pro-v1', name: 'Nova Pro' },
+    { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+    { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B' },
+    { id: 'anthropic/claude-opus-5', name: 'Claude Opus 5' },
 ];
 
 type ApiStatus = 'unverified' | 'checking' | 'ok' | 'error';
@@ -73,8 +76,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
             const checkApiConnection = async () => {
                 setApiStatus('checking');
                 try {
-                    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                    await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: 'test' });
+                    await sendMessageToChat('test', 'test', AVAILABLE_MODELS[0].id);
                     setApiStatus('ok');
                 } catch (error) {
                     console.error("API Connection Check Failed:", error);
@@ -100,14 +102,14 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                 initialMessage = {
                     id: 'welcome-error',
                     sender: 'ai',
-                    text: "ERREUR CRITIQUE : Liaison neuronale défectueuse. Vérifiez vos protocoles API (Clé absente ou invalide).",
+                    text: "ERREUR CRITIQUE : Liaison avec OpenRouter défectueuse. Vérifiez votre clé API OpenRouter.",
                     timestamp: new Date()
                 };
             } else {
                 initialMessage = {
                     id: 'welcome-checking',
                     sender: 'ai',
-                    text: "Séquence de boot en cours... Synchronisation avec le noyau Gemini.",
+                    text: "Séquence de boot en cours... Synchronisation avec OpenRouter.",
                     timestamp: new Date()
                 };
             }
@@ -169,14 +171,14 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                 <div className="w-screen max-w-lg transform transition-all duration-500 ease-in-out bg-slate-900 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-full border-l border-white/5 relative">
 
                     {/* Ambient glow decoration */}
-                    <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-blue-500/5 via-transparent to-emerald-500/5 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-cyan-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
 
                     {/* Header */}
                     <div className="relative z-10 px-8 py-6 border-b border-white/5 bg-black/40 backdrop-blur-2xl flex justify-between items-center flex-wrap gap-4">
                         <div className="flex items-center gap-5">
                             <div className="relative group">
-                                <div className="absolute inset-0 bg-blue-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center shadow-2xl border border-white/10 group-hover:scale-110 transition-transform">
+                                <div className="absolute inset-0 bg-cyan-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-2xl border border-white/10 group-hover:scale-110 transition-transform">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
@@ -191,7 +193,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                             <select
                                 value={selectedModel}
                                 onChange={(e) => setSelectedModel(e.target.value)}
-                                className="bg-black/40 text-[10px] font-black uppercase tracking-widest text-slate-300 rounded-xl border border-white/10 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 p-2 min-w-[140px] cursor-pointer"
+                                className="bg-black/40 text-[10px] font-black uppercase tracking-widest text-slate-300 rounded-xl border border-white/10 focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50 p-2 min-w-[140px] cursor-pointer"
                             >
                                 {AVAILABLE_MODELS.map(model => (
                                     <option key={model.id} value={model.id} className="bg-slate-900 border-none">{model.name}</option>
@@ -210,7 +212,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                                 <div className={`max-w-[90%] rounded-[2rem] p-6 transition-all duration-300 ${msg.sender === 'user'
-                                    ? 'bg-blue-600/20 border border-blue-500/40 text-blue-50 shadow-[0_10px_30px_rgba(37,99,235,0.1)] rounded-br-lg'
+                                    ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-50 shadow-[0_10px_30px_rgba(6,182,212,0.1)] rounded-br-lg'
                                     : 'bg-slate-800/40 backdrop-blur-md border border-white/5 text-slate-200 shadow-2xl rounded-bl-lg'
                                     }`}>
                                     <div className="text-[13px] font-medium leading-relaxed tracking-wide">
@@ -218,7 +220,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                                             i % 2 === 1 ? <strong key={i} className="font-black text-white italic">{part}</strong> : part
                                         )}
                                     </div>
-                                    <div className={`mt-4 flex items-center justify-end gap-2 text-[8px] font-black uppercase tracking-[0.2em] ${msg.sender === 'user' ? 'text-blue-400/70' : 'text-slate-500'}`}>
+                                    <div className={`mt-4 flex items-center justify-end gap-2 text-[8px] font-black uppercase tracking-[0.2em] ${msg.sender === 'user' ? 'text-cyan-400/70' : 'text-slate-500'}`}>
                                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><circle cx="12" cy="12" r="10" /></svg>
                                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
@@ -229,11 +231,11 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                             <div className="flex justify-start">
                                 <div className="bg-slate-800/40 border border-white/5 backdrop-blur-md rounded-[1.5rem] p-4 flex items-center gap-3">
                                     <div className="flex gap-1.5">
-                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce"></div>
                                     </div>
-                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Traitement...</span>
+                                    <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Traitement...</span>
                                 </div>
                             </div>
                         )}
@@ -243,8 +245,8 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                     {/* Input Area */}
                     <div className="relative z-10 p-6 bg-black/40 backdrop-blur-2xl border-t border-white/5">
                         <form onSubmit={handleSendMessage} className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 rounded-[2.5rem] blur opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-                            <div className="relative flex items-center gap-4 bg-slate-900/60 border border-white/10 rounded-[2rem] p-2 transition-all focus-within:border-blue-500/40 focus-within:ring-4 focus-within:ring-blue-500/10">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-[2.5rem] blur opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                            <div className="relative flex items-center gap-4 bg-slate-900/60 border border-white/10 rounded-[2rem] p-2 transition-all focus-within:border-cyan-500/40 focus-within:ring-4 focus-within:ring-cyan-500/10">
                                 <input
                                     type="text"
                                     value={inputValue}
@@ -256,7 +258,7 @@ export const AIChatPanel: React.FC<AIChatPanelProps> = ({ isOpen, onClose, resul
                                 <button
                                     type="submit"
                                     disabled={!inputValue.trim() || isLoading || apiStatus !== 'ok'}
-                                    className="w-12 h-12 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center disabled:shadow-none active:scale-95 group/btn"
+                                    className="w-12 h-12 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center disabled:shadow-none active:scale-95 group/btn"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                         <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
