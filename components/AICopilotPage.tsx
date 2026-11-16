@@ -37,6 +37,16 @@ const OPENROUTER_MODELS = [
     { id: 'anthropic/claude-sonnet-4.6:batch', label: 'Claude Sonnet 4.6 Batch', badge: 'Anthropic', price: '$1.50/M input' },
 ];
 
+const getBadgeStyle = (badge: string): string => {
+    switch (badge) {
+        case 'Amazon': return 'bg-amber-500/15 text-amber-300 border border-amber-500/25';
+        case 'DeepSeek': return 'bg-blue-500/15 text-blue-300 border border-blue-500/25';
+        case 'OpenAI': return 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25';
+        case 'Anthropic': return 'bg-purple-500/15 text-purple-300 border border-purple-500/25';
+        default: return 'bg-white/10 text-slate-300 border border-white/10';
+    }
+};
+
 // --- OPENROUTER REST API HELPER ---
 const callOpenRouterChat = async (message: string, systemPrompt: string, context: string, history: { role: string; content: string }[], modelId: string): Promise<string> => {
     const chatHistory = history.map(m => ({
@@ -506,7 +516,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     </div>
                     <div className="text-left">
                         <div className="text-[11px] font-black text-slate-300 group-hover:text-white transition-colors">Retour au Dashboard</div>
-                        <div className="text-[8px] text-slate-700 font-bold uppercase tracking-widest">PlanneX Mission Control</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">PlanneX Mission Control</div>
                     </div>
                     <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600">
@@ -527,7 +537,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     </div>
                     <div className="text-left">
                         <div className="text-[11px] font-black text-emerald-400 group-hover:text-emerald-300 transition-colors">Voir les Résultats</div>
-                        <div className="text-[8px] text-slate-700 font-bold uppercase tracking-widest">Dashboard Résultats</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Dashboard Résultats</div>
                     </div>
                     <div className="ml-auto">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500/40 group-hover:text-emerald-400 transition-colors">
@@ -556,19 +566,19 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-3">
                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${themeTextColor}`}>Session Active</span>
+                                <span className={`text-[11px] font-black uppercase tracking-widest ${themeTextColor}`}>Session Active</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <div className="text-[8px] text-slate-600 font-bold uppercase mb-0.5">Tâches</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Tâches</div>
                                     <div className="text-lg font-black text-white">{results.kpis.totalTasks}</div>
                                 </div>
                                 <div>
-                                    <div className="text-[8px] text-slate-600 font-bold uppercase mb-0.5">H-H Total</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">H-H Total</div>
                                     <div className="text-lg font-black text-white">{results.kpis.totalManHours.toFixed(0)}</div>
                                 </div>
                                 <div className="col-span-2">
-                                    <div className="text-[8px] text-slate-600 font-bold uppercase mb-0.5">Messages</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Messages</div>
                                     <div className="text-sm font-black text-white">{messages.filter(m => m.role === 'user').length} échanges</div>
                                 </div>
                             </div>
@@ -576,15 +586,15 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                     </div>
 
                     {/* Model Selection */}
-                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-1">Modèle IA · OpenRouter</div>
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Modèle IA · OpenRouter</div>
 
                     {/* Model Picker */}
                     <div className={`rounded-2xl border ${themeBorder} ${themeBg} overflow-hidden`}>
                         {/* Currently selected */}
                         <div className="px-3 py-2.5 border-b border-cyan-500/10">
-                            <div className="text-[8px] text-cyan-400/60 font-black uppercase tracking-widest mb-1">Modèle actif</div>
-                            <div className="text-[11px] font-bold text-cyan-300 truncate">{currentModelInfo.label}</div>
-                            <div className="text-[8px] text-slate-600 font-mono mt-0.5">{currentModelInfo.price}</div>
+                            <div className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1">Modèle actif</div>
+                            <div className="text-sm font-bold text-cyan-300 truncate">{currentModelInfo.label}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{currentModelInfo.price}</div>
                         </div>
                         {/* Search */}
                         <div className="px-3 py-2 border-b border-cyan-500/10">
@@ -593,7 +603,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                 value={orModelSearch}
                                 onChange={e => setOrModelSearch(e.target.value)}
                                 placeholder="Rechercher un modèle..."
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] text-white placeholder:text-slate-700 focus:outline-none focus:border-cyan-500/30 transition-colors"
+                                className="w-full bg-white/[0.08] border border-white/[0.15] rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/30 transition-colors"
                             />
                         </div>
                         {/* Model list */}
@@ -604,14 +614,14 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                     <button
                                         key={model.id}
                                         onClick={() => setSelectedOpenRouterModel(model.id)}
-                                        className={`w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-white/5 transition-colors ${selectedOpenRouterModel === model.id ? 'bg-cyan-500/10' : ''}`}
+                                        className={`w-full text-left px-3.5 py-3 flex items-center gap-3 transition-all duration-150 ${selectedOpenRouterModel === model.id ? 'bg-cyan-500/15 border-l-2 border-l-cyan-400' : 'hover:bg-white/[0.06] border-l-2 border-l-transparent'}`}
                                     >
-                                        <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${selectedOpenRouterModel === model.id ? 'bg-cyan-400' : 'bg-slate-700'}`} />
+                                        <div className={`flex-shrink-0 w-2 h-2 rounded-full transition-all ${selectedOpenRouterModel === model.id ? 'bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-slate-600'}`} />
                                         <div className="flex-1 min-w-0">
-                                            <div className={`text-[10px] font-bold truncate ${selectedOpenRouterModel === model.id ? 'text-cyan-300' : 'text-slate-400'}`}>{model.label}</div>
-                                            <div className="text-[8px] text-slate-600 font-mono">{model.price}</div>
+                                            <div className={`text-xs font-bold truncate ${selectedOpenRouterModel === model.id ? 'text-cyan-300' : 'text-slate-300'}`}>{model.label}</div>
+                                            <div className="text-[10px] text-slate-400 font-mono">{model.price}</div>
                                         </div>
-                                        <span className="flex-shrink-0 text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/5 text-slate-600">{model.badge}</span>
+                                        <span className={`flex-shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${getBadgeStyle(model.badge)}`}>{model.badge}</span>
                                     </button>
                                 ))
                             }
@@ -620,7 +630,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
 
                     {/* Footer */}
                     <div className="mt-4 pt-4 border-t border-white/[0.04]">
-                        <p className="text-[8px] text-slate-700 font-medium text-center leading-relaxed">
+                        <p className="text-[10px] text-slate-500 font-medium text-center leading-relaxed">
                             Les réponses peuvent contenir des inexactitudes.<br />Vérifiez les informations critiques.
                         </p>
                     </div>
@@ -647,14 +657,14 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                 <h1 className="text-base font-black text-white tracking-tight">PlanneX Copilot IA</h1>
                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${themeBg} ${themeTextColor} ${themeBorder} border`}>OpenRouter</span>
                             </div>
-                            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Intelligence Artificielle · Analyse d'Arrêt Industriel</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Intelligence Artificielle · Analyse d'Arrêt Industriel</p>
                         </div>
                     </div>
                     {/* Live Indicator */}
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06]">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">En ligne</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">En ligne</span>
                         </div>
                     </div>
                 </div>
@@ -703,11 +713,11 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                     )}
                                 </div>
                                 <div className={`flex items-center gap-2 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <span className="text-[8px] font-bold uppercase tracking-widest text-slate-700">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                                         {msg.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                     {msg.role === 'assistant' && (
-                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${themeTextColor} opacity-60`}>{currentModelInfo.label}</span>
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${themeTextColor} opacity-80`}>{currentModelInfo.label}</span>
                                     )}
                                 </div>
                             </div>
@@ -746,7 +756,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                             {/* Model pill */}
                             <div className={`flex-shrink-0 self-end mb-1 px-2.5 py-1.5 rounded-xl ${themeBg} border ${themeBorder} flex items-center gap-1.5`}>
                                 <span className="text-base leading-none">🌐</span>
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${themeTextColor}`}>{currentModelInfo.badge}</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${themeTextColor}`}>{currentModelInfo.badge}</span>
                             </div>
                             <textarea
                                 ref={inputRef}
@@ -756,7 +766,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                 placeholder="Posez votre question sur l'arrêt industriel..."
                                 rows={1}
                                 disabled={isLoading}
-                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-700 resize-none py-2 px-1 max-h-[160px] disabled:opacity-50 leading-relaxed"
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white placeholder:text-slate-500 resize-none py-2 px-1 max-h-[160px] disabled:opacity-50 leading-relaxed"
                             />
                             <button
                                 type="submit"
@@ -768,7 +778,7 @@ Posez-moi n'importe quelle question sur votre arrêt. Je peux analyser les risqu
                                 </svg>
                             </button>
                         </div>
-                        <p className="text-center mt-2.5 text-[8px] text-slate-800 font-medium tracking-wide">
+                        <p className="text-center mt-2.5 text-[10px] text-slate-500 font-medium tracking-wide">
                             PlanneX Copilot IA · {results.kpis.totalTasks} tâches analysées · Modèle : {currentModelInfo.label}
                         </p>
                     </form>
